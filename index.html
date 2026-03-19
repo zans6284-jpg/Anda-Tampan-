@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Verifikasi Sistem</title>
+<title>System Access</title>
 
 <style>
 body {
@@ -12,6 +12,7 @@ body {
     font-family: monospace;
     text-align: center;
     padding-top: 80px;
+    transition: background 0.1s;
 }
 
 input, button {
@@ -21,7 +22,7 @@ input, button {
 }
 
 #countdown {
-    font-size: 70px;
+    font-size: 80px;
     margin-top: 30px;
 }
 
@@ -37,25 +38,34 @@ input, button {
     margin: 10px;
     cursor: pointer;
 }
+
+#horrorText {
+    display: none;
+    font-size: 30px;
+    margin-top: 30px;
+    color: #00ff00;
+}
 </style>
 </head>
 <body>
 
-<h1>🔒 Verifikasi Akses</h1>
-<p>Masukkan password untuk melanjutkan</p>
+<h1>🔒 SYSTEM VERIFY</h1>
+<p>ENTER PASSWORD</p>
 
-<input type="password" id="password" placeholder="Masukkan password">
+<input type="password" id="password">
 <br>
-<button onclick="cekPassword()">Masuk</button>
+<button onclick="cekPassword()">ACCESS</button>
+
+<div id="countdown"></div>
 
 <div id="pertanyaan">
     <h2>Orang bodoh selalu berkata tidak.<br>Jadi apakah anda bodoh?</h2>
     
-    <div class="btn" onclick="jawab()">YA</div>
-    <div class="btn" onclick="jawab()">TIDAK</div>
+    <div class="btn" onclick="mulaiHorror()">YA</div>
+    <div class="btn" onclick="mulaiHorror()">TIDAK</div>
 </div>
 
-<div id="countdown"></div>
+<div id="horrorText"> * ```DATA ANDA``` DIREKAM</div>
 
 <audio id="sound" src="sound.mp3"></audio>
 
@@ -64,14 +74,10 @@ function cekPassword() {
     const input = document.getElementById("password").value;
 
     if (input === "Akuganteng") {
-        document.getElementById("pertanyaan").style.display = "block";
+        mulaiCountdown();
     } else {
-        alert("Password salah!");
+        alert("ACCESS DENIED");
     }
-}
-
-function jawab() {
-    mulaiCountdown();
 }
 
 function mulaiCountdown() {
@@ -86,13 +92,25 @@ function mulaiCountdown() {
 
         if (waktu === 0) {
             clearInterval(interval);
-            tampil.innerHTML = "💀";
-
-            let audio = document.getElementById("sound");
-            audio.volume = 1.0; // MAX
-            audio.play();
+            tampil.innerHTML = "";
+            document.getElementById("pertanyaan").style.display = "block";
         }
     }, 1000);
+}
+
+function mulaiHorror() {
+    let audio = document.getElementById("sound");
+    audio.volume = 1.0;
+    audio.play();
+
+    document.getElementById("horrorText").style.display = "block";
+
+    // Efek kedip hijau
+    let nyala = false;
+    setInterval(() => {
+        document.body.style.background = nyala ? "black" : "#00ff00";
+        nyala = !nyala;
+    }, 100);
 }
 </script>
 
