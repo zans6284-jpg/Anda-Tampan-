@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verifikasi Sistem</title>
+
+<style>
+body {
+    background: black;
+    color: lime;
+    font-family: monospace;
+    text-align: center;
+    padding-top: 80px;
+}
+
+input, button {
+    padding: 12px;
+    font-size: 18px;
+    margin: 5px;
+}
+
+#countdown {
+    font-size: 70px;
+    margin-top: 30px;
+}
+
+#pertanyaan {
+    display: none;
+    margin-top: 30px;
+}
+
+.btn {
+    display: inline-block;
+    border: 2px solid lime;
+    padding: 15px 40px;
+    margin: 10px;
+    cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<h1>🔒 Verifikasi Akses</h1>
+<p>Masukkan password untuk melanjutkan</p>
+
+<input type="password" id="password" placeholder="Masukkan password">
+<br>
+<button onclick="cekPassword()">Masuk</button>
+
+<div id="pertanyaan">
+    <h2>Orang bodoh selalu berkata tidak.<br>Jadi apakah anda bodoh?</h2>
+    
+    <div class="btn" onclick="jawab()">YA</div>
+    <div class="btn" onclick="jawab()">TIDAK</div>
+</div>
+
+<div id="countdown"></div>
+
+<audio id="sound" src="sound.mp3"></audio>
+
+<script>
+function cekPassword() {
+    const input = document.getElementById("password").value;
+
+    if (input === "Akuganteng") {
+        document.getElementById("pertanyaan").style.display = "block";
+    } else {
+        alert("Password salah!");
+    }
+}
+
+function jawab() {
+    mulaiCountdown();
+}
+
+function mulaiCountdown() {
+    let waktu = 4;
+    const tampil = document.getElementById("countdown");
+
+    tampil.innerHTML = waktu;
+
+    let interval = setInterval(() => {
+        waktu--;
+        tampil.innerHTML = waktu;
+
+        if (waktu === 0) {
+            clearInterval(interval);
+            tampil.innerHTML = "💀";
+
+            let audio = document.getElementById("sound");
+            audio.volume = 1.0; // MAX
+            audio.play();
+        }
+    }, 1000);
+}
+</script>
+
+</body>
+</html>
