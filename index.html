@@ -2,7 +2,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepSeeker AI FINAL</title><style>
+<title>DeepSeeker AI FINAL FIX</title><style>
 :root{--bg:#000;--green:#00ff88;--glass:#111;--cyan:#00eaff;--red:#ff3b3b}
 body{margin:0;font-family:sans-serif;background:var(--bg);color:#fff}
 
@@ -60,17 +60,19 @@ textarea{flex:1;border-radius:20px;padding:10px;background:#222;color:#fff}
 <button onclick="runCode()">Run</button>
 <pre id="output"></pre>
 </div></div><script>
-// TOKEN
+// TOKEN SYSTEM (FIX LOOP LOGIN)
 function getTokens(){return JSON.parse(localStorage.getItem("tokens")||"{}");}
 function saveTokens(t){localStorage.setItem("tokens",JSON.stringify(t));}
 
 function generateToken(){
+let tokens=getTokens();
 let t="TK"+Math.random().toString(36).substring(2,10);
 let days=parseInt(document.getElementById("expiry").value);
 let expire=Date.now()+days*86400000;
-let tokens=getTokens();
+
 tokens[t]={expire};
 saveTokens(tokens);
+
 document.getElementById("generated").innerText="Token: "+t;
 navigator.clipboard.writeText(t);
 }
@@ -78,35 +80,53 @@ navigator.clipboard.writeText(t);
 function login(){
 let t=document.getElementById("tokenInput").value.trim();
 let tokens=getTokens();
-if(Object.keys(tokens).length===0){generateToken();tokens=getTokens();}
+
+// AUTO CREATE TOKEN JIKA KOSONG
+if(Object.keys(tokens).length===0){
+generateToken();
+tokens=getTokens();
+}
+
 let data=tokens[t];
+
 if(data && data.expire>Date.now()){
 localStorage.setItem("activeToken",t);
 location.reload();
-}else{document.getElementById("status").innerText="Token invalid"}
+}else{
+document.getElementById("status").innerText="Token invalid / expired";
+}
 }
 
 function logout(){
+// FIX: jangan hapus token database
 localStorage.removeItem("activeToken");
 location.reload();
 }
 
-// AUTO LOGIN
+// AUTO LOGIN (FIX LOOP)
+(function(){
 let active=localStorage.getItem("activeToken");
 let tokens=getTokens();
+
 if(active && tokens[active] && tokens[active].expire>Date.now()){
 document.getElementById("loginPage").style.display="none";
 document.getElementById("app").style.display="flex";
 startExpire(tokens[active].expire);
 }
+})();
 
 // CLOCK
-setInterval(()=>{document.getElementById("clock").innerText=new Date().toLocaleTimeString()},1000);
+setInterval(()=>{
+document.getElementById("clock").innerText=new Date().toLocaleTimeString();
+},1000);
 
 function startExpire(exp){
 setInterval(()=>{
 let s=Math.floor((exp-Date.now())/1000);
-if(s<=0){localStorage.removeItem("activeToken");location.reload();}
+if(s<=0){
+localStorage.removeItem("activeToken");
+location.reload();
+}
 let d=Math.floor(s/86400);
 let h=Math.floor((s%86400)/3600);
 let m=Math.floor((s%3600)/60);
@@ -114,7 +134,7 @@ document.getElementById("expireInfo").innerText=`${d}d ${h}h ${m}m`;
 },1000);
 }
 
-// CHAT
+// CHAT UI
 function add(text,type){
 let div=document.createElement("div");
 div.className="msg "+type;
@@ -124,6 +144,7 @@ document.getElementById("chat").scrollTop=999999;
 return div;
 }
 
+// AI CALL VIA BACKEND
 async function send(){
 let input=document.getElementById("input");
 let text=input.value.trim();
@@ -134,26 +155,25 @@ input.value="";
 
 let bubble=add("Loading...","ai");
 
-try {
-  let res = await fetch("https://zans6284-jpg-deepseeker-backend.vercel.app/api/ai", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ message: text })
-  });
+try{
+let res=await fetch("https://zans6284-jpg-deepseeker-backend.vercel.app/api/ai",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({message:text})
+});
 
-  let data = await res.json();
+if(!res.ok){
+bubble.innerText="Server error: "+res.status;
+return;
+}
 
-  if (data.error) {
-    bubble.innerText = "Error: " + data.error;
-  } else {
-    bubble.innerText = data.reply;
-  }
+let data=await res.json();
 
-} catch {
-  bubble.innerText = "Koneksi gagal";
-  }
+bubble.innerText=data.reply || "AI tidak merespon";
+
+}catch(e){
+bubble.innerText="Error koneksi"}
+}
 
 // EDITOR
 function runCode(){
@@ -162,5 +182,6 @@ let result=eval(document.getElementById("code").value);
 document.getElementById("output").innerText=result;
 }catch(e){document.getElementById("output").innerText=e}
 }
+
 </script></body>
 </html>
