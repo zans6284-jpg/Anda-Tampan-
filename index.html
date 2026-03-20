@@ -2,7 +2,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepSeeker AI Single Chat</title><style>
+<title>DeepSeeker AI (Long Press UI)</title><style>
 :root{--bg:#000;--green:#00ff88;--cyan:#00eaff;--red:#ff3b3b}
 body{margin:0;font-family:sans-serif;background:var(--bg);color:#fff}
 
@@ -16,19 +16,33 @@ header{display:flex;align-items:center;padding:10px;background:#111;gap:10px}
 .avatar{width:40px;height:40px;border-radius:50%;background:var(--green)}
 .clock{color:var(--green)}
 .expire{color:var(--cyan)}
-.logout{margin-left:auto;background:var(--red);padding:8px;border-radius:10px;box-shadow:0 0 10px var(--red)}
+.logout{margin-left:auto;background:var(--red);padding:8px;border-radius:10px}
 .top-btn{background:#222;color:#fff;padding:6px 10px;border-radius:8px}
 
 .chat-box{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column}
 .msg{padding:10px;margin:5px;border-radius:10px;max-width:75%;white-space:pre-wrap;position:relative}
 .user{align-self:flex-end;background:#222}
-.ai{align-self:flex-start;background:#0f172a;color:#00ff88;text-shadow:0 0 8px #00ff88}
+.ai{align-self:flex-start;background:#0f172a;color:#00ff88}
 
-.actions{position:absolute;top:4px;right:6px;display:flex;gap:6px}
-.actions button{background:#333;color:#fff;border-radius:6px;padding:2px 6px;font-size:12px}
+.menu{
+position:absolute;
+background:#111;
+border-radius:10px;
+padding:5px;
+display:none;
+flex-direction:column;
+box-shadow:0 0 10px #000;
+}
+.menu button{
+background:none;
+color:#fff;
+border:none;
+padding:5px 10px;
+text-align:left;
+}
 
 .input-area{display:flex;flex-direction:column;padding:10px;background:#111;gap:8px}
-textarea{border-radius:20px;padding:12px;background:#222;color:#fff;border:none;width:100%;font-size:14px;line-height:1.5;resize:none}
+textarea{border-radius:20px;padding:12px;background:#222;color:#fff;border:none;width:100%}
 </style></head>
 <body><div id="loginPage">
 <div class="login-box">
@@ -51,7 +65,7 @@ textarea{border-radius:20px;padding:12px;background:#222;color:#fff;border:none;
 <button class="top-btn" onclick="resetChat()">Reset</button>
 <button class="logout" onclick="logout()">Logout</button>
 </header><div class="chat-box" id="chat"></div><div class="input-area">
-<textarea id="input" placeholder="Ketik pesan..."></textarea>
+<textarea id="input"></textarea>
 <button onclick="send()">Kirim</button>
 </div>
 </div><script>
@@ -66,57 +80,84 @@ function logout(){localStorage.removeItem("activeToken");location.reload();}
 function saveApiKey(){localStorage.setItem("apiKey",apiKeyInput.value.trim());alert("OK");}
 function getApiKey(){return localStorage.getItem("apiKey");}
 
-// CHAT STORAGE (single)
+// STORAGE
 function key(){return "chat_"+localStorage.getItem("activeToken");}
 function load(){return JSON.parse(localStorage.getItem(key())||"[]");}
 function save(d){localStorage.setItem(key(),JSON.stringify(d));}
 
 function render(){chat.innerHTML="";load().forEach((m,i)=>add(m.text,m.role,false,i));}
-
 function resetChat(){save([]);render();}
 
-// UI add with actions
+// LONG PRESS MENU
+let holdTimer;
+
 function add(text,type,saveFlag=true,index=null){
 let div=document.createElement("div");
 div.className="msg "+type;
+
 div.innerText=text;
 
-let act=document.createElement("div");
-act.className="actions";
+let menu=document.createElement("div");
+menu.className="menu";
 
-let del=document.createElement("button");del.innerText="X";
-let edit=document.createElement("button");edit.innerText="E";
+let del=document.createElement("button");del.innerText="Delete";
+let edit=document.createElement("button");edit.innerText="Edit";
 
-act.appendChild(edit);act.appendChild(del);
-div.appendChild(act);
+menu.appendChild(edit);
+menu.appendChild(del);
+div.appendChild(menu);
 
 chat.appendChild(div);
-chat.scrollTop=999999;
 
 if(saveFlag){let d=load();d.push({role:type,text});save(d);index=d.length-1}
 
+// LONG PRESS
+
+div.onmousedown = div.ontouchstart = ()=>{
+holdTimer=setTimeout(()=>{
+menu.style.display="flex";
+menu.style.top="-40px";
+},500);
+};
+
+div.onmouseup = div.ontouchend = ()=>{
+clearTimeout(holdTimer);
+};
+
 // delete
- del.onclick=()=>{
- let d=load();d.splice(index,1);save(d);render();
- };
+del.onclick=()=>{
+let d=load();d.splice(index,1);save(d);render();
+};
 
 // edit
- edit.onclick=()=>{
- let newText=prompt("Edit pesan",text);
- if(newText!==null){let d=load();d[index].text=newText;save(d);render();}
- };
+edit.onclick=()=>{
+let newText=prompt("Edit pesan",text);
+if(newText!==null){let d=load();d[index].text=newText;save(d);render();}
+};
+
+// hide menu
+window.onclick=()=>{menu.style.display="none"}
 
 return div;
 }
 
 // STREAM
-function stream(el,text){let i=0;let t=setInterval(()=>{if(i<text.length){el.innerText+=text[i++]}else clearInterval(t)},8)}
+function stream(el,text){
+el.innerText="";
+let i=0;
+let t=setInterval(()=>{
+if(i<text.length){el.innerText+=text[i++]}
+else clearInterval(t)
+},8);
+}
 
 // AI
 async function send(){
 let apiKey=getApiKey();if(!apiKey)return alert("Isi API key");
 let text=input.value.trim();if(!text)return;
+
 add(text,"user");input.value="";
+
 let bubble=add("","ai");
 
 let msgs=load().map(m=>({role:m.role==="user"?"user":"assistant",content:m.text}));
@@ -124,19 +165,23 @@ msgs.unshift({role:"system",content:"AI chat bebas"});
 
 try{
 let r=await fetch("https://openrouter.ai/api/v1/chat/completions",{
-method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
+method:"POST",
+headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
 body:JSON.stringify({model:"openai/gpt-3.5-turbo",messages:msgs})});
+
 let data=await r.json();
 let reply=data?.choices?.[0]?.message?.content||"...";
+
 stream(bubble,reply);
+
 let d=load();d.push({role:"ai",text:reply});save(d);
+
 }catch{bubble.innerText="Error"}
 }
 
 // AUTO LOGIN
 (function(){let t=localStorage.getItem("activeToken");let tokens=getTokens();if(t&&tokens[t]&&tokens[t].expire>Date.now()){loginPage.style.display="none";app.style.display="flex";render();startExpire(tokens[t].expire)}})();
 
-// CLOCK
 setInterval(()=>clock.innerText=new Date().toLocaleTimeString(),1000);
 function startExpire(exp){setInterval(()=>{let s=Math.floor((exp-Date.now())/1000);if(s<=0){logout()}let d=Math.floor(s/86400);let h=Math.floor((s%86400)/3600);let m=Math.floor((s%3600)/60);expire.innerText=`${d}d ${h}h ${m}m`},1000)}
 </script></body>
