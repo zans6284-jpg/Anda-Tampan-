@@ -164,10 +164,16 @@ let msgs=load().map(m=>({role:m.role==="user"?"user":"assistant",content:m.text}
 msgs.unshift({role:"system",content:"AI chat bebas"});
 
 try{
-let r=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+let r=await fetch("https://api.openai.com/v1/chat/completions",{
 method:"POST",
-headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
-body:JSON.stringify({model:"openai/gpt-3.5-turbo",messages:msgs})});
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer "+apiKey
+},
+body:JSON.stringify({
+model:"gpt-4o-mini",
+messages:msgs
+})});
 
 let data=await r.json();
 let reply=data?.choices?.[0]?.message?.content||"...";
@@ -185,6 +191,5 @@ let d=load();d.push({role:"ai",text:reply});save(d);
 setInterval(()=>clock.innerText=new Date().toLocaleTimeString(),1000);
 function startExpire(exp){setInterval(()=>{let s=Math.floor((exp-Date.now())/1000);if(s<=0){logout()}let d=Math.floor(s/86400);let h=Math.floor((s%86400)/3600);let m=Math.floor((s%3600)/60);expire.innerText=`${d}d ${h}h ${m}m`},1000)}
 </script>
-  <script type="module" src="brain.js"></script>
 </body>
 </html>
