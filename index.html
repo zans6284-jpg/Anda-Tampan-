@@ -2,12 +2,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepSeeker AI (Gemini Stable)</title><style>
-:root{--bg:#000;--green:#00ff88;--glass:rgba(0,255,136,0.1);--cyan:#00eaff;--red:#ff3b3b}
+<title>DeepSeeker AI FINAL</title><style>
+:root{--bg:#000;--green:#00ff88;--glass:#111;--cyan:#00eaff;--red:#ff3b3b}
 body{margin:0;font-family:sans-serif;background:var(--bg);color:#fff}
 
 #loginPage{display:flex;justify-content:center;align-items:center;height:100vh}
-.login-box{background:var(--glass);padding:20px;border-radius:15px;backdrop-filter:blur(10px);box-shadow:0 0 20px var(--green)}
+.login-box{background:#111;padding:20px;border-radius:15px;box-shadow:0 0 20px var(--green)}
 input,button,select{padding:10px;border:none;border-radius:10px;margin-top:10px}
 button{background:var(--green);cursor:pointer}
 
@@ -16,7 +16,7 @@ header{display:flex;align-items:center;gap:10px;padding:10px;background:#111}
 .avatar{width:40px;height:40px;border-radius:50%;background:var(--green)}
 .clock{color:var(--green);text-shadow:0 0 10px var(--green)}
 .expire{color:var(--cyan)}
-.logout{margin-left:auto;background:var(--red);border-radius:12px;color:#fff;box-shadow:0 0 10px var(--red),0 0 25px var(--red);padding:8px 12px}
+.logout{margin-left:auto;background:var(--red);border-radius:12px;color:#fff;box-shadow:0 0 10px var(--red);padding:8px 12px}
 
 .chat-box{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column}
 .msg{padding:10px;margin:5px;border-radius:10px;max-width:75%;word-break:break-word}
@@ -25,6 +25,10 @@ header{display:flex;align-items:center;gap:10px;padding:10px;background:#111}
 
 .input-area{display:flex;gap:5px;padding:10px;background:#111}
 textarea{flex:1;border-radius:20px;padding:10px;background:#222;color:#fff}
+
+.editor{background:#111;padding:10px}
+.editor textarea{width:100%;height:120px;background:#000;color:#0f0;font-family:monospace}
+.editor pre{background:#000;color:#0f0;padding:10px}
 </style></head>
 <body><div id="loginPage">
 <div class="login-box">
@@ -50,13 +54,12 @@ textarea{flex:1;border-radius:20px;padding:10px;background:#222;color:#fff}
 </header><div class="chat-box" id="chat"></div><div class="input-area">
 <textarea id="input" placeholder="Ketik pesan..."></textarea>
 <button onclick="send()">➤</button>
-</div>
-</div><script>
-// SAFE DOM
-const clockEl = document.getElementById("clock");
-const expireEl = document.getElementById("expireInfo");
-const chatEl = document.getElementById("chat");
-
+</div><div class="editor">
+<h3>Mini VS Code</h3>
+<textarea id="code"></textarea>
+<button onclick="runCode()">Run</button>
+<pre id="output"></pre>
+</div></div><script>
 // TOKEN
 function getTokens(){return JSON.parse(localStorage.getItem("tokens")||"{}");}
 function saveTokens(t){localStorage.setItem("tokens",JSON.stringify(t));}
@@ -80,7 +83,7 @@ let data=tokens[t];
 if(data && data.expire>Date.now()){
 localStorage.setItem("activeToken",t);
 location.reload();
-}else{document.getElementById("status").innerText="Token invalid / expired"}
+}else{document.getElementById("status").innerText="Token invalid"}
 }
 
 function logout(){
@@ -98,9 +101,7 @@ startExpire(tokens[active].expire);
 }
 
 // CLOCK
-setInterval(()=>{
-clockEl.innerText=new Date().toLocaleTimeString();
-},1000);
+setInterval(()=>{document.getElementById("clock").innerText=new Date().toLocaleTimeString()},1000);
 
 function startExpire(exp){
 setInterval(()=>{
@@ -109,57 +110,49 @@ if(s<=0){localStorage.removeItem("activeToken");location.reload();}
 let d=Math.floor(s/86400);
 let h=Math.floor((s%86400)/3600);
 let m=Math.floor((s%3600)/60);
-expireEl.innerText=`${d}d ${h}h ${m}m`;
+document.getElementById("expireInfo").innerText=`${d}d ${h}h ${m}m`;
 },1000);
 }
 
-// CHAT UI
+// CHAT
 function add(text,type){
 let div=document.createElement("div");
 div.className="msg "+type;
 div.innerText=text;
-chatEl.appendChild(div);
-chatEl.scrollTop=chatEl.scrollHeight;
+document.getElementById("chat").appendChild(div);
+document.getElementById("chat").scrollTop=999999;
 return div;
 }
 
-// GEMINI (REAL RESPONSE, NO STREAM)
 async function send(){
 let input=document.getElementById("input");
 let text=input.value.trim();
-if(!text) return;
+if(!text)return;
 
 add(text,"user");
 input.value="";
 
-let bubble=add("...","ai");
+let bubble=add("Loading...","ai");
 
 try{
-
-let res = await fetch("https://deepseeker-backend.vercel.app/api/ai", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    message: text
-  })
+let res=await fetch("https://deepseeker-backend.vercel.app/api/ai",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({message:text})
 });
 
-let data = await res.json();
-bubble.innerText = data.reply;
-return;
-}
-
 let data=await res.json();
-let reply=data?.candidates?.[0]?.content?.parts?.[0]?.text;
+bubble.innerText=data.reply || "Tidak ada respon";
 
-bubble.innerText = reply || "Tidak ada respon";
-
-}catch(e){
-bubble.innerText="Error koneksi";
-}
+}catch(e){bubble.innerText="Error koneksi"}
 }
 
+// EDITOR
+function runCode(){
+try{
+let result=eval(document.getElementById("code").value);
+document.getElementById("output").innerText=result;
+}catch(e){document.getElementById("output").innerText=e}
+}
 </script></body>
 </html>
