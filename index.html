@@ -134,18 +134,26 @@ input.value="";
 
 let bubble=add("Loading...","ai");
 
-try{
-let res=await fetch("https://deepseeker-backend.vercel.app/api/ai",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({message:text})
-});
+try {
+  let res = await fetch("https://zans6284-jpg-deepseeker-backend.vercel.app/api/ai", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ message: text })
+  });
 
-let data=await res.json();
-bubble.innerText=data.reply || "Tidak ada respon";
+  let data = await res.json();
 
-}catch(e){bubble.innerText="Error koneksi"}
-}
+  if (data.error) {
+    bubble.innerText = "Error: " + data.error;
+  } else {
+    bubble.innerText = data.reply;
+  }
+
+} catch {
+  bubble.innerText = "Koneksi gagal";
+  }
 
 // EDITOR
 function runCode(){
