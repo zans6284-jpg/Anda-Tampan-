@@ -2,65 +2,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepSeeker WhatsApp AI</title><style>
+<title>DeepSeeker AI (GPT Real-Time)</title><style>
 :root{--bg:#000;--green:#00ff88;--glass:rgba(0,255,136,0.1);--cyan:#00eaff}
 body{margin:0;font-family:sans-serif;background:var(--bg);color:#fff}
 
-/* LOGIN */
 #loginPage{display:flex;justify-content:center;align-items:center;height:100vh}
 .login-box{background:var(--glass);padding:20px;border-radius:15px;backdrop-filter:blur(10px);box-shadow:0 0 20px var(--green)}
 input,button,select{padding:10px;border:none;border-radius:10px;margin-top:10px}
 button{background:var(--green);cursor:pointer}
 
-/* APP */
 #app{display:none;height:100vh;flex-direction:column}
 header{display:flex;align-items:center;gap:10px;padding:10px;background:#111}
 .avatar{width:40px;height:40px;border-radius:50%;background:var(--green)}
-.title{flex:1}
 .clock{color:var(--green);text-shadow:0 0 10px var(--green)}
 .expire{color:var(--cyan)}
 
 .chat-box{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column}
-
 .msg{padding:10px;margin:5px;border-radius:10px;max-width:75%}
 .user{align-self:flex-end;background:#222}
 .ai{align-self:flex-start;background:#0f172a;color:#00ff88;text-shadow:0 0 8px #00ff88}
 
-.input-area{display:flex;gap:5px;padding:10px;background:#111;align-items:center}
+.input-area{display:flex;gap:5px;padding:10px;background:#111}
 textarea{flex:1;border-radius:20px;padding:10px;background:#222;color:#fff}
 
-.file-preview{display:flex;gap:5px;flex-wrap:wrap;padding:5px}
-.file-item{background:#111;padding:5px;border-radius:8px;font-size:12px}
-
-.loader{color:var(--green)}
-
 </style></head>
-<body><!-- LOGIN --><div id="loginPage">
+<body><div id="loginPage">
 <div class="login-box">
-<h2>DeepSeeker Login</h2>
+<h2>Login Token</h2>
 <select id="expiry">
 <option value="1">1 Hari</option>
 <option value="5">5 Hari</option>
 <option value="7">7 Hari</option>
 </select>
-<input id="tokenInput" placeholder="Masukkan token">
+<input id="tokenInput">
 <button onclick="login()">Masuk</button>
-<button onclick="generateToken()">Generate Token</button>
+<button onclick="generateToken()">Generate</button>
 <div id="generated"></div>
 <p id="status"></p>
 </div>
-</div><!-- APP --><div id="app">
+</div><div id="app">
 <header>
 <div class="avatar"></div>
-<div class="title">
-<b>DeepSeeker AI</b><br>
-<small>Online</small>
-</div>
+<b>DeepSeeker GPT</b>
 <div class="clock" id="clock"></div>
 <div class="expire" id="expireInfo"></div>
-</header><div class="chat-box" id="chat"></div><div class="file-preview" id="preview"></div><div class="input-area">
-<input type="file" id="file" multiple>
-<textarea id="input" placeholder="Ketik pesan..."></textarea>
+</header><div class="chat-box" id="chat"></div><div class="input-area">
+<textarea id="input"></textarea>
 <button onclick="send()">➤</button>
 </div>
 </div><script>
@@ -69,10 +56,10 @@ function getTokens(){return JSON.parse(localStorage.getItem("tokens")||"{}");}
 function saveTokens(t){localStorage.setItem("tokens",JSON.stringify(t));}
 
 function generateToken(){
-let tokens=getTokens();
 let t="TK"+Math.random().toString(36).substring(2,10);
 let days=parseInt(document.getElementById("expiry").value);
 let expire=Date.now()+days*86400000;
+let tokens=getTokens();
 tokens[t]={expire};
 saveTokens(tokens);
 document.getElementById("generated").innerText="Token: "+t;
@@ -87,7 +74,7 @@ let data=tokens[t];
 if(data && data.expire>Date.now()){
 localStorage.setItem("activeToken",t);
 location.reload();
-}else{document.getElementById("status").innerText="Token invalid / expired"}
+}else{document.getElementById("status").innerText="Token invalid"}
 }
 
 // AUTO LOGIN
@@ -100,7 +87,7 @@ startExpire(tokens[active].expire);
 }
 
 // CLOCK
-setInterval(()=>{document.getElementById("clock").innerText=new Date().toLocaleTimeString()},1000);
+setInterval(()=>{clock.innerText=new Date().toLocaleTimeString()},1000);
 
 function startExpire(exp){
 setInterval(()=>{
@@ -109,62 +96,66 @@ if(s<=0){localStorage.removeItem("activeToken");location.reload();}
 let d=Math.floor(s/86400);
 let h=Math.floor((s%86400)/3600);
 let m=Math.floor((s%3600)/60);
-document.getElementById("expireInfo").innerText=`${d}d ${h}h ${m}m`;
+expireInfo.innerText=`${d}d ${h}h ${m}m`;
 },1000);
 }
 
-// FILE
-let files=[];
-document.getElementById("file").addEventListener("change",(e)=>{
-files=[...e.target.files].slice(0,5);
-let p=document.getElementById("preview");
-p.innerHTML="";
-files.forEach(f=>{
+// CHAT
+function add(text,type){
 let div=document.createElement("div");
-div.className="file-item";
-div.innerText=f.name;
-p.appendChild(div);
-});
-});
-
-// AI
-async function callAI(text){
-let res=await fetch("https://api.deepseek.com/v1/chat/completions",{
-method:"POST",
-headers:{"Content-Type":"application/json","Authorization":"sk-c4b0b18c43724726aee04387e11ab428"},
-body:JSON.stringify({model:"deepseek-chat",messages:[{role:"user",content:text}]})
-});
-let d=await res.json();
-return d?.choices?.[0]?.message?.content||"Error";
+div.className="msg "+type;
+div.innerText=text;
+chat.appendChild(div);
+chat.scrollTop=999999;
+return div;
 }
 
 async function send(){
 let input=document.getElementById("input");
 let text=input.value.trim();
-if(!text && files.length===0)return;
+if(!text)return;
 
-add(text||"[File]","user");
-
-let loader=document.createElement("div");
-loader.className="msg ai loader";
-loader.innerText="Typing...";
-document.getElementById("chat").appendChild(loader);
-
+add(text,"user");
 input.value="";
-files=[];
-document.getElementById("preview").innerHTML="";
 
-let reply=await callAI(text);
-loader.remove();
-add(reply,"ai");
+// streaming bubble
+let bubble=add("","ai");
+
+const response=await fetch("https://api.openai.com/v1/chat/completions",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer API_KEY_OPENAI"
+},
+body:JSON.stringify({
+model:"gpt-4o-mini",
+messages:[{role:"user",content:text}],
+stream:true
+})
+});
+
+const reader=response.body.getReader();
+const decoder=new TextDecoder("utf-8");
+
+while(true){
+const {done,value}=await reader.read();
+if(done) break;
+
+let chunk=decoder.decode(value);
+let lines=chunk.split("\n");
+
+for(let line of lines){
+if(line.startsWith("data: ")){
+let json=line.replace("data: ","");
+if(json==="[DONE]") return;
+try{
+let data=JSON.parse(json);
+let content=data.choices?.[0]?.delta?.content;
+if(content) bubble.innerText+=content;
+}catch{}
 }
-
-function add(t,type){
-let div=document.createElement("div");
-div.className="msg "+type;
-div.innerText=t;
-document.getElementById("chat").appendChild(div);
-document.getElementById("chat").scrollTop=999999;
+}
+}
 }
 </script></body>
 </html>
