@@ -2,213 +2,187 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepSeeker Ai</title><style>
-:root{--bg:#000;--green:#00ff88}
+<title>DeepSeeker AI (Long Press UI)</title><style>
+:root{--bg:#000;--green:#00ff88;--cyan:#00eaff;--red:#ff3b3b}
 body{margin:0;font-family:sans-serif;background:var(--bg);color:#fff}
-#app{display:flex;height:100vh;flex-direction:column}
-header{padding:10px;background:#111}
+
+#loginPage{display:flex;justify-content:center;align-items:center;height:100vh}
+.login-box{background:#111;padding:20px;border-radius:15px;box-shadow:0 0 20px var(--green)}
+input,button,select{padding:10px;border:none;border-radius:10px;margin-top:10px;width:100%}
+button{background:var(--green);cursor:pointer}
+
+#app{display:none;height:100vh;flex-direction:column}
+header{display:flex;align-items:center;padding:10px;background:#111;gap:10px}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--green)}
+.clock{color:var(--green)}
+.expire{color:var(--cyan)}
+.logout{margin-left:auto;background:var(--red);padding:8px;border-radius:10px}
+.top-btn{background:#222;color:#fff;padding:6px 10px;border-radius:8px}
+
 .chat-box{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column}
 .msg{padding:10px;margin:5px;border-radius:10px;max-width:75%;white-space:pre-wrap;position:relative}
 .user{align-self:flex-end;background:#222}
-.ai{align-self:flex-start;background:#0f172a;color:var(--green)}
-.input-area{display:flex;flex-direction:column;padding:10px;background:#111;gap:8px}
-textarea,input{border-radius:20px;padding:12px;background:#222;color:#fff;border:none;width:100%}
-button{padding:10px;border:none;border-radius:10px;background:var(--green)}
+.ai{align-self:flex-start;background:#0f172a;color:#00ff88}
 
-.menu{position:absolute;top:-45px;right:0;background:#111;border-radius:12px;padding:6px;display:none;box-shadow:0 0 15px rgba(0,0,0,0.8);backdrop-filter:blur(8px)}
-.menu button{background:#222;color:#fff;padding:6px 10px;margin:2px;font-size:12px;border-radius:8px}
+.menu{
+position:absolute;
+background:#111;
+border-radius:10px;
+padding:5px;
+display:none;
+flex-direction:column;
+box-shadow:0 0 10px #000;
+}
+.menu button{
+background:none;
+color:#fff;
+border:none;
+padding:5px 10px;
+text-align:left;
+}
+
+.input-area{display:flex;flex-direction:column;padding:10px;background:#111;gap:8px}
+textarea{border-radius:20px;padding:12px;background:#222;color:#fff;border:none;width:100%}
 </style></head>
-<body><div id="app">
+<body><div id="loginPage">
+<div class="login-box">
+<h3>Login</h3>
+<select id="expiry"><option value="1">1 Hari</option><option value="5">5 Hari</option><option value="7">7 Hari</option></select>
+<input id="tokenInput" placeholder="Token">
+<button onclick="generateToken()">Generate</button>
+<button onclick="login()">Masuk</button>
+<hr>
+<input id="apiKeyInput" placeholder="API Key">
+<button onclick="saveApiKey()">Simpan API</button>
+<p id="generated"></p><p id="status"></p>
+</div>
+</div><div id="app">
 <header>
-<b>DeepSeeker HYBRID REALTIME</b>
-<input id="apiKey" placeholder="API Key (opsional)">
+<div class="avatar"></div>
+<b>DeepSeeker</b>
+<div class="clock" id="clock"></div>
+<div class="expire" id="expire"></div>
+<button class="top-btn" onclick="resetChat()">Reset</button>
+<button class="logout" onclick="logout()">Logout</button>
 </header><div class="chat-box" id="chat"></div><div class="input-area">
-<textarea id="input" placeholder="Tanya apa saja (real-time)..."></textarea>
+<textarea id="input"></textarea>
 <button onclick="send()">Kirim</button>
 </div>
 </div><script>
-let messages=[];
+// TOKEN
+function getTokens(){return JSON.parse(localStorage.getItem("tokens")||"{}");}
+function saveTokens(t){localStorage.setItem("tokens",JSON.stringify(t));}
+function generateToken(){let t="USR"+Math.random().toString(36).substring(2,8);let days=parseInt(expiry.value);let expire=Date.now()+days*86400000;let tokens=getTokens();tokens[t]={expire};saveTokens(tokens);generated.innerText="Token: "+t;tokenInput.value=t;}
+function login(){let t=tokenInput.value.trim();let tokens=getTokens();if(tokens[t]&&tokens[t].expire>Date.now()){localStorage.setItem("activeToken",t);location.reload();}else status.innerText="Token salah"}
+function logout(){localStorage.removeItem("activeToken");location.reload();}
 
-function add(text,type){
+// API
+function saveApiKey(){localStorage.setItem("apiKey",apiKeyInput.value.trim());alert("OK");}
+function getApiKey(){return localStorage.getItem("apiKey");}
+
+// STORAGE
+function key(){return "chat_"+localStorage.getItem("activeToken");}
+function load(){return JSON.parse(localStorage.getItem(key())||"[]");}
+function save(d){localStorage.setItem(key(),JSON.stringify(d));}
+
+function render(){chat.innerHTML="";load().forEach((m,i)=>add(m.text,m.role,false,i));}
+function resetChat(){save([]);render();}
+
+// LONG PRESS MENU
+let holdTimer;
+
+function add(text,type,saveFlag=true,index=null){
 let div=document.createElement("div");
 div.className="msg "+type;
 
-let textEl=document.createElement("span");
-textEl.innerText=text;
+div.innerText=text;
 
 let menu=document.createElement("div");
 menu.className="menu";
 
-let edit=document.createElement("button");edit.innerText="Edit";
 let del=document.createElement("button");del.innerText="Delete";
+let edit=document.createElement("button");edit.innerText="Edit";
 
 menu.appendChild(edit);
 menu.appendChild(del);
-
-div.appendChild(textEl);
 div.appendChild(menu);
 
-// LONG PRESS
-let timer;
-div.addEventListener("touchstart",()=>{
-timer=setTimeout(()=>{
-document.querySelectorAll('.menu').forEach(m=>m.style.display='none');
-menu.style.display="block";
-},300);
-});
-div.addEventListener("touchend",()=>clearTimeout(timer));
-
-// RIGHT CLICK
-div.addEventListener("contextmenu",(e)=>{
-e.preventDefault();
-document.querySelectorAll('.menu').forEach(m=>m.style.display='none');
-menu.style.display="block";
-});
-
-window.addEventListener("click",()=>{
-document.querySelectorAll('.menu').forEach(m=>m.style.display='none');
-});
-
 chat.appendChild(div);
-chat.scrollTop=999999;
 
-messages.push({role:type,text});
-let index=messages.length-1;
+if(saveFlag){let d=load();d.push({role:type,text});save(d);index=d.length-1}
 
-// DELETE
-del.onclick=()=>{messages.splice(index,1);render();};
+// LONG PRESS
 
-// EDIT
-edit.onclick=()=>{
-let newText=prompt("Edit pesan",textEl.innerText);
-if(newText!==null){messages[index].text=newText;render();}
+div.onmousedown = div.ontouchstart = ()=>{
+holdTimer=setTimeout(()=>{
+menu.style.display="flex";
+menu.style.top="-40px";
+},500);
 };
 
-return textEl;
+div.onmouseup = div.ontouchend = ()=>{
+clearTimeout(holdTimer);
+};
+
+// delete
+del.onclick=()=>{
+let d=load();d.splice(index,1);save(d);render();
+};
+
+// edit
+edit.onclick=()=>{
+let newText=prompt("Edit pesan",text);
+if(newText!==null){let d=load();d[index].text=newText;save(d);render();}
+};
+
+// hide menu
+window.onclick=()=>{menu.style.display="none"}
+
+return div;
 }
 
-function render(){
-chat.innerHTML="";
-let temp=[...messages];
-messages=[];
-temp.forEach(m=>add(m.text,m.role));
-}
-
+// STREAM
 function stream(el,text){
 el.innerText="";
 let i=0;
 let t=setInterval(()=>{
 if(i<text.length){el.innerText+=text[i++]}
 else clearInterval(t)
-},6);
+},8);
 }
 
-// 🔥 REALTIME SEARCH ENGINE (DUCKDUCKGO SMART UPGRADE)
-async function searchFull(query){
-let result="";
-try{
-
-// DuckDuckGo PRIMARY (lebih fokus & akurat)
-let d=await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
-let dj=await d.json();
-
-if(dj.Abstract) result += "[Jawaban Utama]
-"+dj.Abstract+"
-
-";
-
-// Related Topics (tambahan konteks)
-if(dj.RelatedTopics && dj.RelatedTopics.length>0){
-result += "[Info Tambahan]
-";
-dj.RelatedTopics.slice(0,5).forEach(item=>{
-if(item.Text) result += "• "+item.Text+"
-";
-});
-result += "
-";
-}
-
-// Jika kosong → fallback teks natural
-if(!result){
-result = "Tidak ditemukan jawaban langsung, coba pertanyaan lebih spesifik.";
-}
-
-return result;
-
-}catch{
-return "Gagal mengambil data dari DuckDuckGo";
-}
-}&format=json&no_html=1`);
-let dj=await d.json();
-if(dj.Abstract) result += "[Info Cepat]\n"+dj.Abstract+"\n\n";
-
-// Wikipedia (detail)
-let w=await fetch(`https://id.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
-let wj=await w.json();
-if(wj.extract) result += "[Penjelasan]\n"+wj.extract+"\n\n";
-
-// Google News (REALTIME)
-let n=await fetch(`https://api.rss2json.com/v1/api.json?rss_url=https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=id&gl=ID&ceid=ID:id`);
-let nj=await n.json();
-
-if(nj.items && nj.items.length>0){
-result += "[🔥 Berita Terbaru]\n";
-nj.items.slice(0,5).forEach(item=>{
-result += "• "+item.title+"\n";
-});
-result += "\n";
-}
-
-return result || "Tidak ditemukan data";
-}catch{
-return "Gagal ambil data realtime";
-}
-}
-
-// 🔥 HYBRID AI (SMARTER + REALTIME)
+// AI
 async function send(){
-let text=input.value.trim();
-if(!text)return;
+let apiKey=getApiKey();if(!apiKey)return alert("Isi API key");
+let text=input.value.trim();if(!text)return;
 
-add(text,"user");
-input.value="";
+add(text,"user");input.value="";
 
 let bubble=add("","ai");
 
-let apiKey=document.getElementById("apiKey").value.trim();
-let realtime=await searchFull(text);
-
-// TANPA API → FULL WEB MODE
-if(!apiKey){
-stream(bubble,"[MODE WEB REALTIME]\n\n"+realtime);
-return;
-}
+let msgs=load().map(m=>({role:m.role==="user"?"user":"assistant",content:m.text}));
+msgs.unshift({role:"system",content:"AI chat bebas"});
 
 try{
-let res=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+let r=await fetch("https://openrouter.ai/api/v1/chat/completions",{
 method:"POST",
-headers:{
-"Content-Type":"application/json",
-"Authorization":"Bearer "+apiKey
-},
-body:JSON.stringify({
-model:"openai/gpt-3.5-turbo",
-messages:[
-{role:"system",content:"Gunakan data terbaru + jawab modern + tidak kaku."},
-{role:"user",content:`Pertanyaan: ${text}\n\nData realtime:\n${realtime}`}
-]
-})
-});
+headers:{"Content-Type":"application/json","Authorization":"Bearer "+apiKey},
+body:JSON.stringify({model:"openai/gpt-3.5-turbo",messages:msgs})});
 
-let data=await res.json();
-let reply=data?.choices?.[0]?.message?.content || realtime;
+let data=await r.json();
+let reply=data?.choices?.[0]?.message?.content||"...";
 
 stream(bubble,reply);
 
-}catch{
-stream(bubble,"[Fallback WEB]\n\n"+realtime);
+let d=load();d.push({role:"ai",text:reply});save(d);
+
+}catch{bubble.innerText="Error"}
 }
-}
+
+// AUTO LOGIN
+(function(){let t=localStorage.getItem("activeToken");let tokens=getTokens();if(t&&tokens[t]&&tokens[t].expire>Date.now()){loginPage.style.display="none";app.style.display="flex";render();startExpire(tokens[t].expire)}})();
+
+setInterval(()=>clock.innerText=new Date().toLocaleTimeString(),1000);
+function startExpire(exp){setInterval(()=>{let s=Math.floor((exp-Date.now())/1000);if(s<=0){logout()}let d=Math.floor(s/86400);let h=Math.floor((s%86400)/3600);let m=Math.floor((s%3600)/60);expire.innerText=`${d}d ${h}h ${m}m`},1000)}
 </script></body>
 </html>
