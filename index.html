@@ -156,15 +156,18 @@ input.value="";
 let bubble=add("Loading...","ai");
 
 try{
-let res=await fetch("https://zans6284-jpg-deepseeker-backend.vercel.app/api/ai",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({message:text})
+  let res = await fetch("https://zans6284-jpg-deepseeker-backend.vercel.app/api/ai", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    message: text
+  })
 });
 
-if(!res.ok){
-bubble.innerText="Server error: "+res.status;
-return;
+let data = await res.json();
+bubble.innerText = data.reply;
 }
 
 let data=await res.json();
