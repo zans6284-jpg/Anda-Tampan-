@@ -2,13 +2,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Coding AI Hub PRO</title><style>
-:root {
-  --bg:#0f172a;--card:#1e293b;--text:#fff;--accent:#38bdf8;
-}
+<title>Code AI Hub PRO</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--text:#fff;--accent:#38bdf8}
 body.light{--bg:#f1f5f9;--card:#fff;--text:#000}
 body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text)}
-nav{display:flex;justify-content:space-between;padding:15px;background:var(--card)}
+nav{display:flex;justify-content:space-between;align-items:center;padding:15px;background:var(--card)}
 button{padding:10px;border:none;border-radius:10px;cursor:pointer}
 .container{padding:20px;display:grid;gap:15px}
 .card{background:var(--card);padding:20px;border-radius:15px}
@@ -19,81 +18,43 @@ pre{background:#000;padding:10px;border-radius:10px;overflow:auto}
 .message{margin:10px;padding:10px;border-radius:10px}
 .user{background:#38bdf8}.ai{background:#334155}
 .chat-input{display:flex;padding:10px;background:var(--card)}
-.clock{
-  font-weight:bold;
-  color:#00ff66;
-  font-size:22px;
-  text-shadow:0 0 5px #00ff66,0 0 15px #00ff66,0 0 30px #00ff66,0 0 60px #00ff66;
-  filter: blur(0.8px);
-  letter-spacing:3px;
-  padding-left:10px;
-}
-</style></head><body><!-- LOGIN --><div id="loginPage" class="container">
-  <div class="card">
-    <h2>🔐 Login Token</h2>
-    <input id="tokenInput" placeholder="Masukkan token...">
-    <button onclick="login()">Masuk</button>
-    <p id="loginStatus"></p>
-  </div>
-</div><!-- MAIN --><div id="app" style="display:none">
+.clock{color:#00ff66;font-size:22px;text-shadow:0 0 5px #00ff66,0 0 20px #00ff66,0 0 40px #00ff66}
+</style>
+</head>
+<body><!-- MAIN --><div id="app">
 <nav>
 <h2>💻 Code AI PRO</h2>
-<div>
+<div style="display:flex;gap:10px;align-items:center">
+<div id="clock" class="clock"></div>
 <button onclick="toggleTheme()">🌙</button>
 <button onclick="openChat()">Deep AI</button>
 </div>
-  <div id="clock" class="clock"></div>
-</nav><div class="container" id="mainPage"><div class="card">
+</nav><div class="container" id="mainPage">
+<div class="card">
 <h3>⚡ Generator Coding AI</h3>
-<input id="genInput" placeholder="Buat website login...">
+<input id="genInput" placeholder="Buat coding...">
 <button onclick="generateCode()">Generate</button>
 <pre id="genOutput"></pre>
 </div><div class="card">
 <h3>🧪 Live Preview HTML</h3>
 <textarea id="htmlCode"></textarea>
 <button onclick="preview()">Preview</button>
-<iframe id="frame" style="width:100%;height:200px"></iframe>
-</div></div>
+<iframe id="frame" style="width:100%;height:200px;border:none"></iframe>
+</div>
+</div>
 </div><!-- CHAT --><div class="chat-page" id="chatPage">
 <button onclick="closeChat()">⬅</button>
 <div class="chat-box" id="chatBox"></div>
 <div class="chat-input">
-<input id="chatInput">
+<input id="chatInput" placeholder="Tanya AI...">
 <button onclick="sendMessage()">Kirim</button>
 </div>
 </div><script>
-
-// TOKEN SYSTEM
-let validTokens = {
-  "PRO123":5,
-  "VIP999":10,
-  "Zxlmn999":999
-};
-
-function login(){
-let t=document.getElementById("tokenInput").value;
-if(validTokens[t]){
-localStorage.setItem("token",t);
-localStorage.setItem("limit",validTokens[t]);
-start();
-}else{
-document.getElementById("loginStatus").innerText="Token salah";
-}
-}
-
-function start(){
-document.getElementById("loginPage").style.display="none";
-document.getElementById("app").style.display="block";
-}
-
-// AUTO LOGIN
-if(localStorage.getItem("token")) start();
-
 // THEME
 if(window.matchMedia('(prefers-color-scheme: light)').matches){document.body.classList.add("light")}
 function toggleTheme(){document.body.classList.toggle("light")}
 
-// CHAT PAGE
+// NAV
 function openChat(){
 document.getElementById("mainPage").style.display="none";
 document.getElementById("chatPage").style.display="flex";
@@ -103,66 +64,32 @@ document.getElementById("mainPage").style.display="grid";
 document.getElementById("chatPage").style.display="none";
 }
 
-// LIMIT CHECK
-function useLimit(){
-let limit=parseInt(localStorage.getItem("limit")||"0",10);
-if(limit<=0){alert("Limit habis!");return false}
-localStorage.setItem("limit",limit-1);
-return true;
-}
-localStorage.setItem("limit",limit-1);
-return true;
-}
-
-// GENERATE CODE AI
-async function generateCode(){
-if(!useLimit()) return;
-let q=document.getElementById("genInput").value;
+// AI CALL
+async function callAI(prompt){
 try{
 let res=await fetch("https://api.deepseek.com/v1/chat/completions",{
 method:"POST",
-headers:{"Content-Type":"application/json","Authorization":"Bearer API_KEY_KAMU"},
-body:JSON.stringify({model:"deepseek-chat",messages:[{role:"user",content:q}]})
+headers:{"Content-Type":"application/json","Authorization":"sk-c4b0b18c43724726aee04387e11ab428"},
+body:JSON.stringify({model:"deepseek-chat",messages:[{role:"user",content:prompt}]})
 });
 let data=await res.json();
-document.getElementById("genOutput").innerText=data?.choices?.[0]?.message?.content||"Error AI";
-}catch(e){
-document.getElementById("genOutput").innerText="Gagal koneksi AI";
-}
-},
-body:JSON.stringify({model:"deepseek-chat",messages:[{role:"user",content:q}]})
-});
-let data=await res.json();
-document.getElementById("genOutput").innerText=data.choices[0].message.content;
+return data?.choices?.[0]?.message?.content||"Error AI";
+}catch{return "Gagal koneksi AI"}
 }
 
-// PREVIEW
-function preview(){
-let code=document.getElementById("htmlCode").value;
-document.getElementById("frame").srcdoc=code;
+async function generateCode(){
+let q=document.getElementById("genInput").value;
+document.getElementById("genOutput").innerText=await callAI(q);
 }
 
 // CHAT
 async function sendMessage(){
-if(!useLimit()) return;
-let msg=document.getElementById("chatInput").value;
+let input=document.getElementById("chatInput");
+let msg=input.value.trim();
+if(!msg)return;
 addMessage(msg,"user");
-try{
-let res=await fetch("https://api.deepseek.com/v1/chat/completions",{
-method:"POST",
-headers:{"Content-Type":"application/json","Authorization":"Bearer API_KEY_KAMU"},
-body:JSON.stringify({model:"deepseek-chat",messages:[{role:"user",content:msg}]})
-});
-let data=await res.json();
-addMessage(data?.choices?.[0]?.message?.content||"Error AI","ai");
-}catch(e){
-addMessage("Gagal koneksi AI","ai");
-}
-},
-body:JSON.stringify({model:"deepseek-chat",messages:[{role:"user",content:msg}]})
-});
-let data=await res.json();
-addMessage(data.choices[0].message.content,"ai");
+input.value="";
+addMessage(await callAI(msg),"ai");
 }
 
 function addMessage(text,type){
@@ -172,15 +99,14 @@ div.innerText=text;
 document.getElementById("chatBox").appendChild(div);
 }
 
-// CLOCK
-function updateClock(){
-  const now=new Date();
-  const time=now.toLocaleTimeString();
-  document.getElementById("clock").innerText=time;
+// PREVIEW
+function preview(){
+document.getElementById("frame").srcdoc=document.getElementById("htmlCode").value;
 }
-setInterval(updateClock,1000);
-updateClock();
 
-</script>
-</body>
+// CLOCK
+setInterval(()=>{
+document.getElementById("clock").innerText=new Date().toLocaleTimeString();
+},1000);
+</script></body>
 </html>
