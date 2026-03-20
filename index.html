@@ -2,7 +2,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepSeeker AI (Gemini Real-Time)</title><style>
+<title>DeepSeeker AI (Gemini Stable)</title><style>
 :root{--bg:#000;--green:#00ff88;--glass:rgba(0,255,136,0.1);--cyan:#00eaff;--red:#ff3b3b}
 body{margin:0;font-family:sans-serif;background:var(--bg);color:#fff}
 
@@ -16,23 +16,15 @@ header{display:flex;align-items:center;gap:10px;padding:10px;background:#111}
 .avatar{width:40px;height:40px;border-radius:50%;background:var(--green)}
 .clock{color:var(--green);text-shadow:0 0 10px var(--green)}
 .expire{color:var(--cyan)}
-.logout{
-margin-left:auto;
-background:var(--red);
-border-radius:12px;
-color:#fff;
-box-shadow:0 0 10px var(--red),0 0 25px var(--red);
-padding:8px 12px;
-}
+.logout{margin-left:auto;background:var(--red);border-radius:12px;color:#fff;box-shadow:0 0 10px var(--red),0 0 25px var(--red);padding:8px 12px}
 
 .chat-box{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column}
-.msg{padding:10px;margin:5px;border-radius:10px;max-width:75%}
+.msg{padding:10px;margin:5px;border-radius:10px;max-width:75%;word-break:break-word}
 .user{align-self:flex-end;background:#222}
 .ai{align-self:flex-start;background:#0f172a;color:#00ff88;text-shadow:0 0 8px #00ff88}
 
 .input-area{display:flex;gap:5px;padding:10px;background:#111}
 textarea{flex:1;border-radius:20px;padding:10px;background:#222;color:#fff}
-
 </style></head>
 <body><div id="loginPage">
 <div class="login-box">
@@ -42,7 +34,7 @@ textarea{flex:1;border-radius:20px;padding:10px;background:#222;color:#fff}
 <option value="5">5 Hari</option>
 <option value="7">7 Hari</option>
 </select>
-<input id="tokenInput">
+<input id="tokenInput" placeholder="Masukkan token">
 <button onclick="login()">Masuk</button>
 <button onclick="generateToken()">Generate</button>
 <div id="generated"></div>
@@ -56,10 +48,15 @@ textarea{flex:1;border-radius:20px;padding:10px;background:#222;color:#fff}
 <div class="expire" id="expireInfo"></div>
 <button class="logout" onclick="logout()">Logout</button>
 </header><div class="chat-box" id="chat"></div><div class="input-area">
-<textarea id="input"></textarea>
+<textarea id="input" placeholder="Ketik pesan..."></textarea>
 <button onclick="send()">➤</button>
 </div>
 </div><script>
+// SAFE DOM
+const clockEl = document.getElementById("clock");
+const expireEl = document.getElementById("expireInfo");
+const chatEl = document.getElementById("chat");
+
 // TOKEN
 function getTokens(){return JSON.parse(localStorage.getItem("tokens")||"{}");}
 function saveTokens(t){localStorage.setItem("tokens",JSON.stringify(t));}
@@ -83,7 +80,7 @@ let data=tokens[t];
 if(data && data.expire>Date.now()){
 localStorage.setItem("activeToken",t);
 location.reload();
-}else{document.getElementById("status").innerText="Token invalid"}
+}else{document.getElementById("status").innerText="Token invalid / expired"}
 }
 
 function logout(){
@@ -102,7 +99,7 @@ startExpire(tokens[active].expire);
 
 // CLOCK
 setInterval(()=>{
-document.getElementById("clock").innerText=new Date().toLocaleTimeString();
+clockEl.innerText=new Date().toLocaleTimeString();
 },1000);
 
 function startExpire(exp){
@@ -112,7 +109,7 @@ if(s<=0){localStorage.removeItem("activeToken");location.reload();}
 let d=Math.floor(s/86400);
 let h=Math.floor((s%86400)/3600);
 let m=Math.floor((s%3600)/60);
-document.getElementById("expireInfo").innerText=`${d}d ${h}h ${m}m`;
+expireEl.innerText=`${d}d ${h}h ${m}m`;
 },1000);
 }
 
@@ -121,40 +118,40 @@ function add(text,type){
 let div=document.createElement("div");
 div.className="msg "+type;
 div.innerText=text;
-document.getElementById("chat").appendChild(div);
-document.getElementById("chat").scrollTop=999999;
+chatEl.appendChild(div);
+chatEl.scrollTop=chatEl.scrollHeight;
 return div;
 }
 
-// GEMINI REAL STREAM (simulasi chunk agar stabil frontend)
+// GEMINI (REAL RESPONSE, NO STREAM)
 async function send(){
 let input=document.getElementById("input");
 let text=input.value.trim();
-if(!text)return;
+if(!text) return;
 
 add(text,"user");
 input.value="";
 
-let bubble=add("","ai");
+let bubble=add("...","ai");
 
 try{
 let res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyAc8TzB-9x7VbWaaVBZjSgweXzQJdorgWg",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({contents:[{parts:[{text:text}]}]})
+body:JSON.stringify({
+contents:[{role:"user",parts:[{text:text}]}]
+})
 });
 
-let data=await res.json();
-let full=data?.candidates?.[0]?.content?.parts?.[0]?.text || "Error";
+if(!res.ok){
+bubble.innerText="Error API: "+res.status;
+return;
+}
 
-// fake streaming biar smooth seperti chatgpt
-let i=0;
-let interval=setInterval(()=>{
-if(i<full.length){
-bubble.innerText+=full[i];
-i++;
-}else clearInterval(interval);
-},10);
+let data=await res.json();
+let reply=data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+bubble.innerText = reply || "Tidak ada respon";
 
 }catch(e){
 bubble.innerText="Error koneksi";
