@@ -1,8 +1,7 @@
-<!DOCTYPE html><html lang="id">
-<head>
+<!DOCTYPE html><html lang="id"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepSeeker AI (Long Press UI)</title><style>
+<title>DeepSeeker AI (OpenAI)</title><style>
 :root{--bg:#000;--green:#00ff88;--cyan:#00eaff;--red:#ff3b3b}
 body{margin:0;font-family:sans-serif;background:var(--bg);color:#fff}
 
@@ -24,23 +23,6 @@ header{display:flex;align-items:center;padding:10px;background:#111;gap:10px}
 .user{align-self:flex-end;background:#222}
 .ai{align-self:flex-start;background:#0f172a;color:#00ff88}
 
-.menu{
-position:absolute;
-background:#111;
-border-radius:10px;
-padding:5px;
-display:none;
-flex-direction:column;
-box-shadow:0 0 10px #000;
-}
-.menu button{
-background:none;
-color:#fff;
-border:none;
-padding:5px 10px;
-text-align:left;
-}
-
 .input-area{display:flex;flex-direction:column;padding:10px;background:#111;gap:8px}
 textarea{border-radius:20px;padding:12px;background:#222;color:#fff;border:none;width:100%}
 </style></head>
@@ -52,116 +34,165 @@ textarea{border-radius:20px;padding:12px;background:#222;color:#fff;border:none;
 <button onclick="generateToken()">Generate</button>
 <button onclick="login()">Masuk</button>
 <hr>
-<input id="apiKeyInput" placeholder="API Key">
+<input id="apiKeyInput" placeholder="OpenAI API Key">
 <button onclick="saveApiKey()">Simpan API</button>
 <p id="generated"></p><p id="status"></p>
 </div>
 </div><div id="app">
 <header>
-<div class="avatar"></div>
-<b>DeepSeeker</b>
+<b>DeepSeeker OpenAI</b>
 <div class="clock" id="clock"></div>
-<div class="expire" id="expire"></div>
-<button class="top-btn" onclick="resetChat()">Reset</button>
 <button class="logout" onclick="logout()">Logout</button>
 </header><div class="chat-box" id="chat"></div><div class="input-area">
 <textarea id="input"></textarea>
 <button onclick="send()">Kirim</button>
 </div>
 </div><script>
-// TOKEN
 function getTokens(){return JSON.parse(localStorage.getItem("tokens")||"{}");}
 function saveTokens(t){localStorage.setItem("tokens",JSON.stringify(t));}
 function generateToken(){let t="USR"+Math.random().toString(36).substring(2,8);let days=parseInt(expiry.value);let expire=Date.now()+days*86400000;let tokens=getTokens();tokens[t]={expire};saveTokens(tokens);generated.innerText="Token: "+t;tokenInput.value=t;}
 function login(){let t=tokenInput.value.trim();let tokens=getTokens();if(tokens[t]&&tokens[t].expire>Date.now()){localStorage.setItem("activeToken",t);location.reload();}else status.innerText="Token salah"}
 function logout(){localStorage.removeItem("activeToken");location.reload();}
 
-// API
 function saveApiKey(){localStorage.setItem("apiKey",apiKeyInput.value.trim());alert("OK");}
 function getApiKey(){return localStorage.getItem("apiKey");}
 
-// STORAGE
 function key(){return "chat_"+localStorage.getItem("activeToken");}
 function load(){return JSON.parse(localStorage.getItem(key())||"[]");}
 function save(d){localStorage.setItem(key(),JSON.stringify(d));}
 
-function render(){chat.innerHTML="";load().forEach((m,i)=>add(m.text,m.role,false,i));}
-function resetChat(){save([]);render();}
-
-// LONG PRESS MENU
-let holdTimer;
-
-function add(text,type,saveFlag=true,index=null){
+function add(text,type){
 let div=document.createElement("div");
 div.className="msg "+type;
-
 div.innerText=text;
-
-let menu=document.createElement("div");
-menu.className="menu";
-
-let del=document.createElement("button");del.innerText="Delete";
-let edit=document.createElement("button");edit.innerText="Edit";
-
-menu.appendChild(edit);
-menu.appendChild(del);
-div.appendChild(menu);
-
 chat.appendChild(div);
-
-if(saveFlag){let d=load();d.push({role:type,text});save(d);index=d.length-1}
-
-// LONG PRESS
-
-div.onmousedown = div.ontouchstart = ()=>{
-holdTimer=setTimeout(()=>{
-menu.style.display="flex";
-menu.style.top="-40px";
-},500);
-};
-
-div.onmouseup = div.ontouchend = ()=>{
-clearTimeout(holdTimer);
-};
-
-// delete
-del.onclick=()=>{
-let d=load();d.splice(index,1);save(d);render();
-};
-
-// edit
-edit.onclick=()=>{
-let newText=prompt("Edit pesan",text);
-if(newText!==null){let d=load();d[index].text=newText;save(d);render();}
-};
-
-// hide menu
-window.onclick=()=>{menu.style.display="none"}
-
 return div;
 }
 
-// STREAM
 function stream(el,text){
 el.innerText="";
 let i=0;
 let t=setInterval(()=>{
 if(i<text.length){el.innerText+=text[i++]}
 else clearInterval(t)
-},8);
+},10);
 }
 
-// AI
 async function send(){
-let apiKey=getApiKey();if(!apiKey)return alert("Isi API key");
-let text=input.value.trim();if(!text)return;
+let apiKey=getApiKey();
+if(!apiKey)return alert("Isi API key");
 
-add(text,"user");input.value="";
+let text=input.value.trim();
+if(!text)return;
 
-let bubble=add("","ai");
+// tampilkan user
+add(text,"user");
+input.value="";
 
-let msgs=load().map(m=>({role:m.role==="user"?"user":"assistant",content:m.text}));
-msgs.unshift({role:"system",content:"AI chat bebas"});
+// loading bubble
+let bubble=add("...","ai");
+
+// ambil history
+let history=load();
+let msgs=history.map(m=>({role:m.role==="user"?"user":"assistant",content:m.text}));
+
+// tambahkan user ke history + request
+msgs.push({role:"user",content:text});
+history.push({role:"user",text});
+save(history);
+
+try{
+let r=await fetch("https://api.openai.com/v1/chat/completions",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer "+apiKey
+},
+body:JSON.stringify({
+model:"gpt-4o-mini",
+messages:msgs
+})});
+
+let data=await r.json();
+
+// tampilkan error jelas
+if(data.error){
+bubble.innerText="Error: "+data.error.message;
+return;
+}
+
+let reply=data?.choices?.[0]?.message?.content;
+
+if(!reply){
+bubble.innerText="Tidak ada respon";
+return;
+}
+
+// tampilkan jawaban
+bubble.innerText="";
+stream(bubble,reply);
+
+// simpan ai
+let d=load();
+d.push({role:"ai",text:reply});
+save(d);
+
+}catch(e){
+bubble.innerText="Error koneksi";
+console.error(e);
+}
+}));
+msgs.push({role:"user",content:text});
+
+// simpan user
+history.push({role:"user",text});
+save(history);
+
+try{
+let r=await fetch("https://api.openai.com/v1/chat/completions",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"Authorization":"Bearer "+apiKey
+},
+body:JSON.stringify({
+model:"gpt-4o-mini",
+messages:msgs
+})
+});
+
+let data=await r.json();
+
+// DEBUG kalau error
+if(data.error){
+bubble.innerText="Error: "+data.error.message;
+return;
+}
+
+let reply=data?.choices?.[0]?.message?.content;
+
+if(!reply){
+bubble.innerText="Tidak ada respon";
+return;
+}
+
+bubble.innerText="";
+stream(bubble,reply);
+
+let d=load();
+d.push({role:"ai",text:reply});
+save(d);
+
+}catch(e){
+bubble.innerText="Error koneksi";
+console.error(e);
+}
+}));
+msgs.push({role:"user",content:text});
+
+// simpan user message juga
+history.push({role:"user",text});
+save(history);
 
 try{
 let r=await fetch("https://api.openai.com/v1/chat/completions",{
@@ -180,16 +211,17 @@ let reply=data?.choices?.[0]?.message?.content||"...";
 
 stream(bubble,reply);
 
-let d=load();d.push({role:"ai",text:reply});save(d);
+let d=load();
+d.push({role:"ai",text:reply});
+save(d);
 
-}catch{bubble.innerText="Error"}
+}catch{
+bubble.innerText="Error koneksi";
+}
 }
 
-// AUTO LOGIN
-(function(){let t=localStorage.getItem("activeToken");let tokens=getTokens();if(t&&tokens[t]&&tokens[t].expire>Date.now()){loginPage.style.display="none";app.style.display="flex";render();startExpire(tokens[t].expire)}})();
+(function(){let t=localStorage.getItem("activeToken");let tokens=getTokens();if(t&&tokens[t]&&tokens[t].expire>Date.now()){loginPage.style.display="none";app.style.display="flex"}})();
 
 setInterval(()=>clock.innerText=new Date().toLocaleTimeString(),1000);
-function startExpire(exp){setInterval(()=>{let s=Math.floor((exp-Date.now())/1000);if(s<=0){logout()}let d=Math.floor(s/86400);let h=Math.floor((s%86400)/3600);let m=Math.floor((s%3600)/60);expire.innerText=`${d}d ${h}h ${m}m`},1000)}
-</script>
-</body>
+</script></body>
 </html>
