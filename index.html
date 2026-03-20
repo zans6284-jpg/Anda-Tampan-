@@ -135,11 +135,11 @@ input.value="";
 let bubble=add("...","ai");
 
 try{
-let res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyAc8TzB-9x7VbWaaVBZjSgweXzQJdorgWg",{
+let res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=AIzaSyCoB-byCEYCsPVD8tH6RLBrt4cF-kZaTHk",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
-contents:[{role:"user",parts:[{text:text}]}]
+contents:[{parts:[{text:text}]}]
 })
 });
 
