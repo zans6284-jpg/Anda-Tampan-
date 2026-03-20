@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepSeeker AI FINAL</title>
+<title>DeepSeeker AI Online</title>
 
 <style>
 :root{
@@ -70,7 +70,6 @@ color:var(--cyan);
 margin-left:auto;
 background:var(--red);
 border-radius:12px;
-color:#fff;
 padding:8px;
 box-shadow:0 0 10px var(--red);
 }
@@ -168,7 +167,7 @@ padding:10px;
 
 <header>
 <div class="avatar"></div>
-<b>DeepSeeker Gemini</b>
+<b>DeepSeeker AI</b>
 <div class="clock" id="clock"></div>
 <div class="expire" id="expire"></div>
 <button class="logout" onclick="logout()">Logout</button>
@@ -177,7 +176,7 @@ padding:10px;
 <div class="chat-box" id="chat"></div>
 
 <div class="input-area">
-<textarea id="input"></textarea>
+<textarea id="input" placeholder="Ketik pesan..."></textarea>
 <button onclick="send()">➤</button>
 </div>
 
@@ -210,13 +209,9 @@ let expire=Date.now()+days*86400000;
 tokens[t]={expire};
 saveTokens(tokens);
 
-// tampilkan
 document.getElementById("generated").innerText="Token: "+t;
-
-// auto isi input
 document.getElementById("tokenInput").value=t;
 
-// copy
 navigator.clipboard.writeText(t);
 }
 
@@ -224,13 +219,11 @@ function login(){
 let t=document.getElementById("tokenInput").value.trim();
 let tokens=getTokens();
 
-// auto buat token kalau kosong
 if(Object.keys(tokens).length===0){
 generateToken();
 tokens=getTokens();
 }
 
-// auto ambil token pertama
 if(!t){
 t=Object.keys(tokens)[0];
 }
@@ -250,7 +243,7 @@ localStorage.removeItem("activeToken");
 location.reload();
 }
 
-// ===== AUTO LOGIN =====
+// AUTO LOGIN
 (function(){
 let t=localStorage.getItem("activeToken");
 let tokens=getTokens();
@@ -262,7 +255,7 @@ startExpire(tokens[t].expire);
 }
 })();
 
-// ===== CLOCK =====
+// CLOCK
 setInterval(()=>{
 document.getElementById("clock").innerText=new Date().toLocaleTimeString();
 },1000);
@@ -284,7 +277,7 @@ document.getElementById("expire").innerText=`${d}d ${h}h ${m}m`;
 },1000);
 }
 
-// ===== CHAT =====
+// CHAT UI
 function add(text,type){
 let div=document.createElement("div");
 div.className="msg "+type;
@@ -294,6 +287,7 @@ chat.scrollTop=999999;
 return div;
 }
 
+// ===== AI ONLINE =====
 async function send(){
 let input=document.getElementById("input");
 let text=input.value.trim();
@@ -305,21 +299,32 @@ input.value="";
 let bubble=add("Loading...","ai");
 
 try{
-let res=await fetch("https://zans6284-jpg-deepseeker-backend.vercel.app/api/ai",{
+let res = await fetch("https://openrouter.ai/api/v1/chat/completions",{
 method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({message:text})
+headers:{
+"Content-Type":"application/json",
+"Authorization":"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"
+},
+body: JSON.stringify({
+model:"openai/gpt-3.5-turbo",
+messages:[
+{role:"system",content:"Kamu adalah AI untuk ngobrol, coding, cerita, RP, dan dewasa ringan tanpa melanggar aturan,dll."},
+{role:"user",content:text}
+]
+})
 });
 
-let data=await res.json();
-bubble.innerText=data.reply || "Tidak ada respon";
+let data = await res.json();
+let reply = data?.choices?.[0]?.message?.content;
+
+bubble.innerText = reply || "Tidak ada respon";
 
 }catch{
 bubble.innerText="Error koneksi";
 }
 }
 
-// ===== EDITOR =====
+// EDITOR
 function runCode(){
 try{
 let r=eval(document.getElementById("code").value);
