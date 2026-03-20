@@ -184,5 +184,7 @@ let d=load();d.push({role:"ai",text:reply});save(d);
 
 setInterval(()=>clock.innerText=new Date().toLocaleTimeString(),1000);
 function startExpire(exp){setInterval(()=>{let s=Math.floor((exp-Date.now())/1000);if(s<=0){logout()}let d=Math.floor(s/86400);let h=Math.floor((s%86400)/3600);let m=Math.floor((s%3600)/60);expire.innerText=`${d}d ${h}h ${m}m`},1000)}
-</script></body>
+</script>
+  <script type="module" src="brain.js"></script>
+</body>
 </html>
