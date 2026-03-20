@@ -2,111 +2,190 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Code AI Hub PRO</title>
-<style>
-:root{--bg:#0f172a;--card:#1e293b;--text:#fff;--accent:#38bdf8}
-body.light{--bg:#f1f5f9;--card:#fff;--text:#000}
-body{margin:0;font-family:sans-serif;background:var(--bg);color:var(--text)}
-nav{display:flex;justify-content:space-between;align-items:center;padding:15px;background:var(--card)}
-button{padding:10px;border:none;border-radius:10px;cursor:pointer}
-.container{padding:20px;display:grid;gap:15px}
-.card{background:var(--card);padding:20px;border-radius:15px}
-textarea,input{width:100%;padding:10px;border-radius:10px;border:none;margin-top:10px}
-pre{background:#000;padding:10px;border-radius:10px;overflow:auto}
-.chat-page{display:none;flex-direction:column;height:100vh}
-.chat-box{flex:1;overflow:auto;padding:10px}
-.message{margin:10px;padding:10px;border-radius:10px}
-.user{background:#38bdf8}.ai{background:#334155}
-.chat-input{display:flex;padding:10px;background:var(--card)}
-.clock{color:#00ff66;font-size:22px;text-shadow:0 0 5px #00ff66,0 0 20px #00ff66,0 0 40px #00ff66}
-</style>
-</head>
-<body><!-- MAIN --><div id="app">
-<nav>
-<h2>💻 Code AI PRO</h2>
-<div style="display:flex;gap:10px;align-items:center">
-<div id="clock" class="clock"></div>
-<button onclick="toggleTheme()">🌙</button>
-<button onclick="openChat()">Deep AI</button>
+<title>DeepSeeker AI</title><style>
+:root{
+--bg:#000;
+--green:#00ff88;
+--glass:rgba(0,255,136,0.15);
+}
+
+body{
+margin:0;
+font-family:sans-serif;
+background:var(--bg);
+color:white;
+}
+
+/* LOGIN */
+#loginPage{display:flex;justify-content:center;align-items:center;height:100vh}
+.login-box{
+background:var(--glass);
+padding:20px;
+border-radius:15px;
+backdrop-filter:blur(10px);
+box-shadow:0 0 20px var(--green);
+}
+
+input,button,select{
+padding:10px;
+border:none;
+border-radius:10px;
+margin-top:10px;
+}
+
+button{background:var(--green);cursor:pointer}
+
+/* APP */
+#app{display:none;height:100vh;flex-direction:column}
+
+header{
+display:flex;
+justify-content:space-between;
+padding:10px;
+background:var(--glass);
+box-shadow:0 0 10px var(--green);
+}
+
+.clock{
+color:var(--green);
+text-shadow:0 0 10px var(--green),0 0 30px var(--green);
+}
+
+.chat-box{
+flex:1;
+overflow:auto;
+padding:10px;
+}
+
+.msg{
+padding:10px;
+margin:10px;
+border-radius:10px;
+max-width:80%;
+}
+
+.user{background:#222}
+.ai{background:#0f172a;color:#00ffcc}
+
+.input-area{
+display:flex;
+padding:10px;
+background:var(--glass);
+}
+
+textarea{
+flex:1;
+border-radius:10px;
+padding:10px;
+background:#111;
+color:white;
+}
+
+/* CODE EDITOR */
+pre{
+background:#111;
+color:#0f0;
+padding:10px;
+border-radius:10px;
+overflow:auto;
+}
+
+</style></head>
+<body><!-- LOGIN --><div id="loginPage">
+<div class="login-box">
+<h2>DeepSeeker Login</h2>
+<input id="token" placeholder="Token">
+<button onclick="login()">Masuk</button>
+<button onclick="generateToken()">Generate Token</button>
+<p id="status"></p>
 </div>
-</nav><div class="container" id="mainPage">
-<div class="card">
-<h3>⚡ Generator Coding AI</h3>
-<input id="genInput" placeholder="Buat coding...">
-<button onclick="generateCode()">Generate</button>
-<pre id="genOutput"></pre>
-</div><div class="card">
-<h3>🧪 Live Preview HTML</h3>
-<textarea id="htmlCode"></textarea>
-<button onclick="preview()">Preview</button>
-<iframe id="frame" style="width:100%;height:200px;border:none"></iframe>
-</div>
-</div>
-</div><!-- CHAT --><div class="chat-page" id="chatPage">
-<button onclick="closeChat()">⬅</button>
-<div class="chat-box" id="chatBox"></div>
-<div class="chat-input">
-<input id="chatInput" placeholder="Tanya AI...">
-<button onclick="sendMessage()">Kirim</button>
-</div>
-</div><script>
-// THEME
-if(window.matchMedia('(prefers-color-scheme: light)').matches){document.body.classList.add("light")}
-function toggleTheme(){document.body.classList.toggle("light")}
+</div><!-- APP --><div id="app">
+<header>
+<h3>DeepSeeker AI</h3>
+<div class="clock" id="clock"></div>
+<select id="mode">
+<option value="normal">Normal</option>
+<option value="18+">18+</option>
+</select>
+</header><div class="chat-box" id="chat"></div><div class="input-area">
+<textarea id="input"></textarea>
+<button onclick="send()">Kirim</button>
+</div><div class="chat-box">
+<h3>VS Code Editor</h3>
+<textarea id="code"></textarea>
+<pre id="output"></pre>
+<button onclick="runCode()">Run</button>
+</div></div><script>
 
-// NAV
-function openChat(){
-document.getElementById("mainPage").style.display="none";
-document.getElementById("chatPage").style.display="flex";
-}
-function closeChat(){
-document.getElementById("mainPage").style.display="grid";
-document.getElementById("chatPage").style.display="none";
+let tokens={};
+
+function generateToken(){
+let t="TK"+Math.random().toString(36).substring(2,8);
+tokens[t]={limit:20,expire:Date.now()+3600000};
+alert("Token: "+t);
 }
 
-// AI CALL
-async function callAI(prompt){
-try{
-let res=await fetch("https://api.deepseek.com/v1/chat/completions",{
-method:"POST",
-headers:{"Content-Type":"application/json","Authorization":"sk-c4b0b18c43724726aee04387e11ab428"},
-body:JSON.stringify({model:"deepseek-chat",messages:[{role:"user",content:prompt}]})
-});
-let data=await res.json();
-return data?.choices?.[0]?.message?.content||"Error AI";
-}catch{return "Gagal koneksi AI"}
+function login(){
+let t=document.getElementById("token").value;
+let data=tokens[t];
+if(data && data.expire>Date.now()){
+localStorage.setItem("token",t);
+location.reload();
+}else{
+document.getElementById("status").innerText="Token invalid/expired";
+}
 }
 
-async function generateCode(){
-let q=document.getElementById("genInput").value;
-document.getElementById("genOutput").innerText=await callAI(q);
-}
-
-// CHAT
-async function sendMessage(){
-let input=document.getElementById("chatInput");
-let msg=input.value.trim();
-if(!msg)return;
-addMessage(msg,"user");
-input.value="";
-addMessage(await callAI(msg),"ai");
-}
-
-function addMessage(text,type){
-let div=document.createElement("div");
-div.className="message "+type;
-div.innerText=text;
-document.getElementById("chatBox").appendChild(div);
-}
-
-// PREVIEW
-function preview(){
-document.getElementById("frame").srcdoc=document.getElementById("htmlCode").value;
+// AUTO LOGIN
+let saved=localStorage.getItem("token");
+if(saved && tokens[saved]){
+document.getElementById("loginPage").style.display="none";
+document.getElementById("app").style.display="flex";
 }
 
 // CLOCK
 setInterval(()=>{
 document.getElementById("clock").innerText=new Date().toLocaleTimeString();
 },1000);
-</script></body>
+
+// AI
+async function callAI(text){
+let mode=document.getElementById("mode").value;
+let res=await fetch("https://api.deepseek.com/v1/chat/completions",{
+method:"POST",
+headers:{"Content-Type":"application/json","Authorization":"sk-c4b0b18c43724726aee04387e11ab428"},
+body:JSON.stringify({model:"deepseek-chat",messages:[{role:"user",content:mode+":"+text}]})
+});
+let d=await res.json();
+return d.choices[0].message.content;
+}
+
+async function send(){
+let input=document.getElementById("input");
+let text=input.value;
+add(text,"user");
+input.value="";
+let reply=await callAI(text);
+add(reply,"ai");
+}
+
+function add(t,type){
+let div=document.createElement("div");
+div.className="msg "+type;
+div.innerText=t;
+document.getElementById("chat").appendChild(div);
+}
+
+// CODE
+function runCode(){
+try{
+let r=eval(document.getElementById("code").value);
+document.getElementById("output").innerText=r;
+}catch(e){
+document.getElementById("output").innerText=e;
+}
+}
+
+</script>
+</body>
 </html>
