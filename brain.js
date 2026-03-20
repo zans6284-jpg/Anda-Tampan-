@@ -1,142 +1,76 @@
-// ===== SUPER AI BRAIN MODULE =====
+// ===== DEEPSEEK ULTIMATE BRAIN (MERGED VERSION) =====
 
-// Google-like search (DuckDuckGo enhanced)
-export async function smartSearch(query){
-let result="";
+// ===== GLOBAL STATE ===== export let DEV_MODE = false;
 
-try{
-let d=await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
-let dj=await d.json();
+// ===== DEV MODE TRIGGER ===== export function checkDevMode(text){ if(text.includes("•Dev✓")){ DEV_MODE = true; return true; } return false; }
 
-if(dj.Abstract){
-result += "[Jawaban Utama]\n"+dj.Abstract+"\n\n";
-}
+// ===== CONTEXT MEMORY ===== export function buildContext(messages){ return messages.slice(-12).map(m => m.role + ": " + m.text).join("\n"); }
+
+// ===== MULTI SEARCH ENGINE ===== export async function multiSearch(query){ let results = [];
+
+try{ // DuckDuckGo let d = await fetch(https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1); let dj = await d.json();
+
+if(dj.Abstract) results.push(dj.Abstract);
 
 if(dj.RelatedTopics){
-result += "[Referensi]\n";
-dj.RelatedTopics.slice(0,6).forEach(i=>{
-if(i.Text) result += "• "+i.Text+"\n";
-});
+  dj.RelatedTopics.slice(0,6).forEach(i=>{
+    if(i.Text) results.push(i.Text);
+  });
 }
 
-return refine(result);
-
-}catch{
-return "Gagal mengambil data";
-}
-}
-
-// ranking seperti Google
-function refine(data){
-return data
-.split("\n")
-.filter(x=>x.length>25)
-.slice(0,8)
-.join("\n");
-}
-
-// long context memory
-export function buildContext(messages){
-return messages.slice(-10).map(m=>`${m.role}: ${m.text}`).join("\n");
-}
-
-// smart thinking
-export function systemPrompt(){
-return `
-Kamu adalah AI cerdas seperti Google + ChatGPT.
-
-Aturan:
-- Prioritaskan akurasi
-- Evaluasi semua data sebelum jawab
-- Pilih informasi paling relevan
-- Gabungkan dengan logika sendiri
-
-Jawaban harus:
-- jelas
-- tidak kaku
-- modern
-`;
-}
-// ===== MULTI SEARCH ENGINE (SMART SELECT) =====
-export async function multiSearch(query){
-let results = [];
-
-try{
-
-// 1. DuckDuckGo
-let d = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`);
-let dj = await d.json();
-
-if(dj.Abstract){
-results.push(dj.Abstract);
-}
-
-// 2. Wikipedia
+// Wikipedia fallback
 let w = await fetch(`https://id.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
 let wj = await w.json();
 
-if(wj.extract){
-results.push(wj.extract);
-}
+if(wj.extract) results.push(wj.extract);
 
-// 3. fallback text scraping
-if(results.length === 0){
-let html = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`);
-let text = await html.text();
-let clean = text.replace(/<[^>]*>/g,"").slice(0,1000);
-results.push(clean);
-}
+return rank(results);
 
-// ranking hasil
-return rankResults(results);
+}catch{ return "Gagal mengambil data"; } }
 
-}catch{
-return "Gagal mengambil data";
-}
-}
+// ===== RANKING SYSTEM ===== function rank(list){ return list .filter(x => x && x.length > 30) .sort((a,b)=> b.length - a.length) .slice(0,5) .join("\n\n"); }
 
-// ===== RANKING (GOOGLE STYLE) =====
-function rankResults(list){
-return list
-.filter(x => x && x.length > 50)
-.sort((a,b)=> b.length - a.length)
-.slice(0,3)
-.join("\n\n");
-}
+// ===== WEB READER ===== export async function readWeb(url){ try{ let proxy = https://api.allorigins.win/raw?url=${encodeURIComponent(url)}; let res = await fetch(proxy); let html = await res.text();
 
-// ===== REASONING ENGINE =====
-export function reasoning(context, data, question){
-return `
-[ANALISIS]
-- Context: ${context.slice(0,200)}
-- Data ditemukan: ${data.slice(0,300)}
+let clean = html.replace(/<[^>]*>/g,"");
+return clean.slice(0,1000);
 
-[KESIMPULAN]
-Jawab pertanyaan berdasarkan data paling relevan + logika terbaik.
-`;
-}
+}catch{ return "Gagal membaca halaman web"; } }
 
-// ===== CONTEXT MEMORY =====
-export function buildContext(messages){
-return messages.slice(-10).map(m=>`${m.role}: ${m.text}`).join("\n");
-}
+// ===== REASONING ENGINE ===== export function reasoning(context, data, question){ return ` [CONTEXT] ${context}
 
-// ===== SYSTEM PROMPT =====
-export function systemPrompt(){
-return `
-Kamu adalah AI pintar dengan kemampuan:
-- Multi search
-- Evaluasi data
-- Reasoning logis
+[DATA] ${data}
 
-Aturan:
-- Jangan asal jawab
-- Pilih info paling relevan
-- Gunakan logika jika data kurang
+[PERTANYAAN] ${question}
 
-Jawaban:
-- jelas
-- akurat
-- tidak bertele-tele
-`;
-  }
+[TUGAS] Analisa semua informasi dan berikan jawaban paling akurat. `; }
+
+// ===== SYSTEM PROMPT ===== export function systemPrompt(){ if(DEV_MODE){ return ` Kamu adalah AI Developer Mode.
+
+Gunakan reasoning mendalam
+
+Evaluasi semua kemungkinan
+
+Fokus ke akurasi tinggi
+
+Jawaban boleh kompleks dan teknis
+
+Jangan halusinasi `; }
+
+return Kamu adalah AI normal. Jawab dengan jelas, akurat, dan mudah dipahami.; }
+
+
+// ===== SMART PROCESSOR ===== export async function processInput(text){ if(text.startsWith("http")){ return await readWeb(text); }
+
+return await multiSearch(text); }
+
+// ===== FINAL AI PIPELINE ===== export async function runAI({text, messages, apiKey}){ if(checkDevMode(text)){ return "[DEV MODE AKTIF]"; }
+
+let context = buildContext(messages); let data = await processInput(text); let prompt = reasoning(context, data, text);
+
+if(!apiKey){ return data; }
+
+try{ let res = await fetch("https://openrouter.ai/api/v1/chat/completions",{ method:"POST", headers:{ "Content-Type":"application/json", "Authorization":"Bearer " + apiKey }, body: JSON.stringify({ model: "openai/gpt-3.5-turbo", messages:[ {role:"system", content: systemPrompt()}, {role:"user", content: prompt} ] }) });
+
+let dataRes = await res.json();
+return
