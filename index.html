@@ -2,7 +2,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepSeeker AI Hybrid Mode</title><style>
+<title>DeepSeeker AI Hybrid Mode (REALTIME UPGRADE)</title><style>
 :root{--bg:#000;--green:#00ff88}
 body{margin:0;font-family:sans-serif;background:var(--bg);color:#fff}
 #app{display:flex;height:100vh;flex-direction:column}
@@ -15,46 +15,15 @@ header{padding:10px;background:#111}
 textarea,input{border-radius:20px;padding:12px;background:#222;color:#fff;border:none;width:100%}
 button{padding:10px;border:none;border-radius:10px;background:var(--green)}
 
-/* FLOAT MENU (IMPROVED MODERN) */
-.menu{
-position:absolute;
-top:-45px;
-right:0;
-background:#111;
-border-radius:12px;
-padding:6px;
-display:none;
-box-shadow:0 0 15px rgba(0,0,0,0.8);
-backdrop-filter:blur(8px);
-animation:fadeIn 0.15s ease;
-}
-.menu button{
-background:#222;
-color:#fff;
-padding:6px 10px;
-margin:2px;
-font-size:12px;
-border-radius:8px;
-}
-
-@keyframes fadeIn{
-from{opacity:0;transform:translateY(5px)}
-to{opacity:1;transform:translateY(0)}
-}
-.menu button{
-background:#222;
-color:#fff;
-padding:5px 10px;
-margin:2px;
-font-size:12px;
-}
+.menu{position:absolute;top:-45px;right:0;background:#111;border-radius:12px;padding:6px;display:none;box-shadow:0 0 15px rgba(0,0,0,0.8);backdrop-filter:blur(8px)}
+.menu button{background:#222;color:#fff;padding:6px 10px;margin:2px;font-size:12px;border-radius:8px}
 </style></head>
 <body><div id="app">
 <header>
-<b>DeepSeeker HYBRID MODE</b>
-<input id="apiKey" placeholder="API Key (opsional untuk AI)">
+<b>DeepSeeker HYBRID REALTIME</b>
+<input id="apiKey" placeholder="API Key (opsional)">
 </header><div class="chat-box" id="chat"></div><div class="input-area">
-<textarea id="input" placeholder="Tanya apa saja..."></textarea>
+<textarea id="input" placeholder="Tanya apa saja (real-time)..."></textarea>
 <button onclick="send()">Kirim</button>
 </div>
 </div><script>
@@ -70,11 +39,8 @@ textEl.innerText=text;
 let menu=document.createElement("div");
 menu.className="menu";
 
-let edit=document.createElement("button");
-edit.innerText="Edit";
-
-let del=document.createElement("button");
-del.innerText="Delete";
+let edit=document.createElement("button");edit.innerText="Edit";
+let del=document.createElement("button");del.innerText="Delete";
 
 menu.appendChild(edit);
 menu.appendChild(del);
@@ -82,25 +48,23 @@ menu.appendChild(del);
 div.appendChild(textEl);
 div.appendChild(menu);
 
-// LONG PRESS MOBILE (MODERN FIX)
+// LONG PRESS
 let timer;
 div.addEventListener("touchstart",()=>{
 timer=setTimeout(()=>{
 document.querySelectorAll('.menu').forEach(m=>m.style.display='none');
 menu.style.display="block";
-},350);
+},300);
 });
-
 div.addEventListener("touchend",()=>clearTimeout(timer));
 
-// DESKTOP RIGHT CLICK
+// RIGHT CLICK
 div.addEventListener("contextmenu",(e)=>{
 e.preventDefault();
 document.querySelectorAll('.menu').forEach(m=>m.style.display='none');
 menu.style.display="block";
 });
 
-// TAP OUTSIDE TO CLOSE
 window.addEventListener("click",()=>{
 document.querySelectorAll('.menu').forEach(m=>m.style.display='none');
 });
@@ -112,18 +76,12 @@ messages.push({role:type,text});
 let index=messages.length-1;
 
 // DELETE
-del.onclick=()=>{
-messages.splice(index,1);
-render();
-};
+del.onclick=()=>{messages.splice(index,1);render();};
 
 // EDIT
 edit.onclick=()=>{
 let newText=prompt("Edit pesan",textEl.innerText);
-if(newText!==null){
-messages[index].text=newText;
-render();
-}
+if(newText!==null){messages[index].text=newText;render();}
 };
 
 return textEl;
@@ -142,50 +100,73 @@ let i=0;
 let t=setInterval(()=>{
 if(i<text.length){el.innerText+=text[i++]}
 else clearInterval(t)
-},8);
+},6);
 }
 
-// SEARCH + REALTIME NEWS
+// 🔥 REALTIME SEARCH ENGINE (DUCKDUCKGO SMART UPGRADE)
 async function searchFull(query){
 let result="";
 try{
 
-// DuckDuckGo
-let d=await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`);
+// DuckDuckGo PRIMARY (lebih fokus & akurat)
+let d=await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
 let dj=await d.json();
-if(dj.Abstract) result += "[Info]
+
+if(dj.Abstract) result += "[Jawaban Utama]
 "+dj.Abstract+"
 
 ";
 
-// Wikipedia
+// Related Topics (tambahan konteks)
+if(dj.RelatedTopics && dj.RelatedTopics.length>0){
+result += "[Info Tambahan]
+";
+dj.RelatedTopics.slice(0,5).forEach(item=>{
+if(item.Text) result += "• "+item.Text+"
+";
+});
+result += "
+";
+}
+
+// Jika kosong → fallback teks natural
+if(!result){
+result = "Tidak ditemukan jawaban langsung, coba pertanyaan lebih spesifik.";
+}
+
+return result;
+
+}catch{
+return "Gagal mengambil data dari DuckDuckGo";
+}
+}&format=json&no_html=1`);
+let dj=await d.json();
+if(dj.Abstract) result += "[Info Cepat]\n"+dj.Abstract+"\n\n";
+
+// Wikipedia (detail)
 let w=await fetch(`https://id.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
 let wj=await w.json();
-if(wj.extract) result += "[Wiki]
-"+wj.extract+"
+if(wj.extract) result += "[Penjelasan]\n"+wj.extract+"\n\n";
 
-";
-
-// GOOGLE NEWS (REALTIME STRONGER)
+// Google News (REALTIME)
 let n=await fetch(`https://api.rss2json.com/v1/api.json?rss_url=https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=id&gl=ID&ceid=ID:id`);
 let nj=await n.json();
 
 if(nj.items && nj.items.length>0){
-result += "[Berita Terbaru REAL-TIME]
-";
+result += "[🔥 Berita Terbaru]\n";
 nj.items.slice(0,5).forEach(item=>{
-result += "- "+item.title+"
-";
+result += "• "+item.title+"\n";
 });
+result += "\n";
 }
 
-return result || "Tidak ditemukan info kuat";
+return result || "Tidak ditemukan data";
 }catch{
-return "Gagal ambil data web";
+return "Gagal ambil data realtime";
 }
 }
 
-// HYBRID AI
+// 🔥 HYBRID AI (SMARTER + REALTIME)
 async function send(){
 let text=input.value.trim();
 if(!text)return;
@@ -196,10 +177,11 @@ input.value="";
 let bubble=add("","ai");
 
 let apiKey=document.getElementById("apiKey").value.trim();
-let web=await searchFull(text);
+let realtime=await searchFull(text);
 
+// TANPA API → FULL WEB MODE
 if(!apiKey){
-stream(bubble,"[WEB]\n"+web);
+stream(bubble,"[MODE WEB REALTIME]\n\n"+realtime);
 return;
 }
 
@@ -213,19 +195,19 @@ headers:{
 body:JSON.stringify({
 model:"openai/gpt-3.5-turbo",
 messages:[
-{role:"system",content:"Gunakan info web terbaru."},
-{role:"user",content:`Pertanyaan: ${text}\n\nData web:\n${web}`}
+{role:"system",content:"Gunakan data terbaru + jawab modern + tidak kaku."},
+{role:"user",content:`Pertanyaan: ${text}\n\nData realtime:\n${realtime}`}
 ]
 })
 });
 
 let data=await res.json();
-let reply=data?.choices?.[0]?.message?.content || web;
+let reply=data?.choices?.[0]?.message?.content || realtime;
 
 stream(bubble,reply);
 
 }catch{
-stream(bubble,"[WEB]\n"+web);
+stream(bubble,"[Fallback WEB]\n\n"+realtime);
 }
 }
 </script></body>
