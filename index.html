@@ -65,8 +65,8 @@ pre{background:#000;padding:10px;border-radius:10px;overflow:auto}
 
 // TOKEN SYSTEM
 let validTokens = {
-  "PRO123":5,
-  "VIP999":10,
+  "PRO123":15,
+  "VIP999":30,
   "Zxlmn999":999
 };
 
@@ -150,7 +150,7 @@ addMessage(msg,"user");
 try{
 let res=await fetch("https://api.deepseek.com/v1/chat/completions",{
 method:"POST",
-headers:{"Content-Type":"application/json","Authorization":"sk-c4b0b18c43724726aee04387e11ab428"},
+headers:{"Content-Type":"application/json","Authorization":"Bearer API_KEY_KAMU"},
 body:JSON.stringify({model:"deepseek-chat",messages:[{role:"user",content:msg}]})
 });
 let data=await res.json();
@@ -182,4 +182,4 @@ setInterval(updateClock,1000);
 updateClock();
 
 </script></body>
-</html>
+  </html>
