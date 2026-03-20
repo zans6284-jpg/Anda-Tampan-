@@ -2,28 +2,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepSeeker AI</title>
-<style>
-:root{--bg:#000;--green:#00ff88;--glass:rgba(0,255,136,0.15)}
+<title>DeepSeeker WhatsApp AI</title><style>
+:root{--bg:#000;--green:#00ff88;--glass:rgba(0,255,136,0.1);--cyan:#00eaff}
 body{margin:0;font-family:sans-serif;background:var(--bg);color:#fff}
+
+/* LOGIN */
 #loginPage{display:flex;justify-content:center;align-items:center;height:100vh}
 .login-box{background:var(--glass);padding:20px;border-radius:15px;backdrop-filter:blur(10px);box-shadow:0 0 20px var(--green)}
 input,button,select{padding:10px;border:none;border-radius:10px;margin-top:10px}
 button{background:var(--green);cursor:pointer}
+
+/* APP */
 #app{display:none;height:100vh;flex-direction:column}
-header{display:flex;justify-content:space-between;padding:10px;background:var(--glass)}
-.clock{color:var(--green);text-shadow:0 0 10px var(--green),0 0 30px var(--green)}
-.chat-box{flex:1;overflow:auto;padding:10px}
-.msg{padding:10px;margin:10px;border-radius:10px;max-width:80%}
-.user{background:#222}
-.ai{background:#0f172a;color:#00ffcc}
-.input-area{display:flex;padding:10px;background:var(--glass)}
-textarea{flex:1;border-radius:10px;padding:10px;background:#111;color:#fff}
-pre{background:#111;color:#0f0;padding:10px;border-radius:10px}
-.token-display{color:var(--green);word-break:break-all;margin-top:10px}
-</style>
-</head>
-<body><div id="loginPage">
+header{display:flex;align-items:center;gap:10px;padding:10px;background:#111}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--green)}
+.title{flex:1}
+.clock{color:var(--green);text-shadow:0 0 10px var(--green)}
+.expire{color:var(--cyan)}
+
+.chat-box{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column}
+
+.msg{padding:10px;margin:5px;border-radius:10px;max-width:75%}
+.user{align-self:flex-end;background:#222}
+.ai{align-self:flex-start;background:#0f172a;color:#00ff88;text-shadow:0 0 8px #00ff88}
+
+.input-area{display:flex;gap:5px;padding:10px;background:#111;align-items:center}
+textarea{flex:1;border-radius:20px;padding:10px;background:#222;color:#fff}
+
+.file-preview{display:flex;gap:5px;flex-wrap:wrap;padding:5px}
+.file-item{background:#111;padding:5px;border-radius:8px;font-size:12px}
+
+.loader{color:var(--green)}
+
+</style></head>
+<body><!-- LOGIN --><div id="loginPage">
 <div class="login-box">
 <h2>DeepSeeker Login</h2>
 <select id="expiry">
@@ -34,93 +46,88 @@ pre{background:#111;color:#0f0;padding:10px;border-radius:10px}
 <input id="tokenInput" placeholder="Masukkan token">
 <button onclick="login()">Masuk</button>
 <button onclick="generateToken()">Generate Token</button>
-<div id="generated" class="token-display"></div>
+<div id="generated"></div>
 <p id="status"></p>
 </div>
-</div><div id="app">
+</div><!-- APP --><div id="app">
 <header>
-<h3>DeepSeeker AI</h3>
+<div class="avatar"></div>
+<div class="title">
+<b>DeepSeeker AI</b><br>
+<small>Online</small>
+</div>
 <div class="clock" id="clock"></div>
-<div id="expireInfo"></div>
-</header>
-<div class="chat-box" id="chat"></div>
-<div class="input-area">
-<textarea id="input"></textarea>
-<button onclick="send()">Kirim</button>
+<div class="expire" id="expireInfo"></div>
+</header><div class="chat-box" id="chat"></div><div class="file-preview" id="preview"></div><div class="input-area">
+<input type="file" id="file" multiple>
+<textarea id="input" placeholder="Ketik pesan..."></textarea>
+<button onclick="send()">➤</button>
 </div>
 </div><script>
-// ===== TOKEN SYSTEM =====
-function getTokens(){
-return JSON.parse(localStorage.getItem("tokens")||"{}");
-}
-function saveTokens(t){
-localStorage.setItem("tokens",JSON.stringify(t));
-}
+// TOKEN
+function getTokens(){return JSON.parse(localStorage.getItem("tokens")||"{}");}
+function saveTokens(t){localStorage.setItem("tokens",JSON.stringify(t));}
 
 function generateToken(){
 let tokens=getTokens();
 let t="TK"+Math.random().toString(36).substring(2,10);
 let days=parseInt(document.getElementById("expiry").value);
 let expire=Date.now()+days*86400000;
-
 tokens[t]={expire};
 saveTokens(tokens);
-
-// tampilkan + copy
-let el=document.getElementById("generated");
-el.innerText="Token: "+t;
+document.getElementById("generated").innerText="Token: "+t;
 navigator.clipboard.writeText(t);
 }
 
 function login(){
 let t=document.getElementById("tokenInput").value.trim();
 let tokens=getTokens();
-
-// auto buat jika kosong
-if(Object.keys(tokens).length===0){
-generateToken();
-tokens=getTokens();
-}
-
+if(Object.keys(tokens).length===0){generateToken();tokens=getTokens();}
 let data=tokens[t];
 if(data && data.expire>Date.now()){
 localStorage.setItem("activeToken",t);
 location.reload();
-}else{
-document.getElementById("status").innerText="Token invalid / expired";
-}
+}else{document.getElementById("status").innerText="Token invalid / expired"}
 }
 
-// ===== AUTO LOGIN =====
+// AUTO LOGIN
 let active=localStorage.getItem("activeToken");
 let tokens=getTokens();
 if(active && tokens[active] && tokens[active].expire>Date.now()){
 document.getElementById("loginPage").style.display="none";
 document.getElementById("app").style.display="flex";
-startExpireTimer(tokens[active].expire);
+startExpire(tokens[active].expire);
 }
 
-// ===== CLOCK =====
-setInterval(()=>{
-document.getElementById("clock").innerText=new Date().toLocaleTimeString();
-},1000);
+// CLOCK
+setInterval(()=>{document.getElementById("clock").innerText=new Date().toLocaleTimeString()},1000);
 
-// ===== EXPIRE TIMER =====
-function startExpireTimer(exp){
+function startExpire(exp){
 setInterval(()=>{
 let s=Math.floor((exp-Date.now())/1000);
-if(s<=0){
-localStorage.removeItem("activeToken");
-location.reload();
-}
-let h=Math.floor(s/3600);
+if(s<=0){localStorage.removeItem("activeToken");location.reload();}
+let d=Math.floor(s/86400);
+let h=Math.floor((s%86400)/3600);
 let m=Math.floor((s%3600)/60);
-let d=Math.floor(h/24);
-document.getElementById("expireInfo").innerText=`Expire: ${d}d ${h%24}h ${m}m`;
+document.getElementById("expireInfo").innerText=`${d}d ${h}h ${m}m`;
 },1000);
 }
 
-// ===== AI =====
+// FILE
+let files=[];
+document.getElementById("file").addEventListener("change",(e)=>{
+files=[...e.target.files].slice(0,5);
+let p=document.getElementById("preview");
+p.innerHTML="";
+files.forEach(f=>{
+let div=document.createElement("div");
+div.className="file-item";
+div.innerText=f.name;
+p.appendChild(div);
+});
+});
+
+// AI
 async function callAI(text){
 let res=await fetch("https://api.deepseek.com/v1/chat/completions",{
 method:"POST",
@@ -133,11 +140,23 @@ return d?.choices?.[0]?.message?.content||"Error";
 
 async function send(){
 let input=document.getElementById("input");
-let text=input.value;
-if(!text)return;
-add(text,"user");
+let text=input.value.trim();
+if(!text && files.length===0)return;
+
+add(text||"[File]","user");
+
+let loader=document.createElement("div");
+loader.className="msg ai loader";
+loader.innerText="Typing...";
+document.getElementById("chat").appendChild(loader);
+
 input.value="";
-add(await callAI(text),"ai");
+files=[];
+document.getElementById("preview").innerHTML="";
+
+let reply=await callAI(text);
+loader.remove();
+add(reply,"ai");
 }
 
 function add(t,type){
@@ -145,6 +164,7 @@ let div=document.createElement("div");
 div.className="msg "+type;
 div.innerText=t;
 document.getElementById("chat").appendChild(div);
+document.getElementById("chat").scrollTop=999999;
 }
 </script></body>
 </html>
