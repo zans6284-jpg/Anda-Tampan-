@@ -13,19 +13,20 @@ input,button,select{padding:10px;border:none;border-radius:10px;margin-top:10px;
 button{background:var(--green);cursor:pointer}
 
 #app{display:none;height:100vh;flex-direction:column}
-header{display:flex;align-items:center;padding:10px;background:#111}
+header{display:flex;align-items:center;padding:10px;background:#111;gap:10px}
 .avatar{width:40px;height:40px;border-radius:50%;background:var(--green)}
-.clock{color:var(--green);margin-left:10px}
-.expire{color:var(--cyan);margin-left:10px}
+.clock{color:var(--green)}
+.expire{color:var(--cyan)}
 .logout{margin-left:auto;background:var(--red);padding:8px;border-radius:10px;box-shadow:0 0 10px var(--red)}
+.top-btn{background:#222;color:#fff;padding:6px 10px;border-radius:8px}
 
 .chat-box{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column}
-.msg{padding:10px;margin:5px;border-radius:10px;max-width:75%}
+.msg{padding:10px;margin:5px;border-radius:10px;max-width:75%;white-space:pre-wrap}
 .user{align-self:flex-end;background:#222}
 .ai{align-self:flex-start;background:#0f172a;color:#00ff88;text-shadow:0 0 8px #00ff88}
 
-.input-area{display:flex;padding:10px;background:#111}
-textarea{flex:1;border-radius:20px;padding:10px;background:#222;color:#fff;border:none}
+.input-area{display:flex;flex-direction:column;padding:10px;background:#111;gap:8px}
+textarea{border-radius:20px;padding:12px;background:#222;color:#fff;border:none;width:100%;font-size:14px;line-height:1.5;resize:none}
 </style></head>
 <body><!-- LOGIN --><div id="loginPage">
 <div class="login-box">
@@ -44,16 +45,18 @@ textarea{flex:1;border-radius:20px;padding:10px;background:#222;color:#fff;borde
 </div><!-- APP --><div id="app">
 <header>
 <div class="avatar"></div>
-<b style="margin-left:10px">DeepSeeker Multi</b>
+<b>DeepSeeker Multi</b>
 <div class="clock" id="clock"></div>
 <div class="expire" id="expire"></div>
+<button class="top-btn" onclick="newChat()">+ Chat</button>
+<button class="top-btn" onclick="downloadChat()">⬇ Download</button>
 <button class="logout" onclick="logout()">Logout</button>
 </header><div class="chat-box" id="chat"></div><div class="input-area">
-<textarea id="input" placeholder="Ketik pesan..."></textarea>
-<button onclick="send()">➤</button>
+<textarea id="input" placeholder="Ketik pesan... (emoji 😊 didukung)"></textarea>
+<button onclick="send()">➤ Kirim</button>
 </div>
 </div><script>
-// ===== TOKEN MULTI USER =====
+// ===== TOKEN =====
 function getTokens(){return JSON.parse(localStorage.getItem("tokens")||"{}");}
 function saveTokens(t){localStorage.setItem("tokens",JSON.stringify(t));}
 
@@ -74,13 +77,9 @@ function login(){
 let t=document.getElementById("tokenInput").value.trim();
 let tokens=getTokens();
 
-if(!t){
-document.getElementById("status").innerText="Isi token dulu";
-return;
-}
+if(!t){document.getElementById("status").innerText="Isi token dulu";return;}
 
 let data=tokens[t];
-
 if(data && data.expire>Date.now()){
 localStorage.setItem("activeToken",t);
 location.reload();
@@ -89,39 +88,56 @@ document.getElementById("status").innerText="Token invalid / expired";
 }
 }
 
-function logout(){
-localStorage.removeItem("activeToken");
-location.reload();
-}
+function logout(){localStorage.removeItem("activeToken");location.reload();}
 
-// ===== API KEY SAVE =====
+// ===== API KEY =====
 function saveApiKey(){
 let key=document.getElementById("apiKeyInput").value.trim();
 if(!key) return alert("Isi API Key!");
 localStorage.setItem("apiKey",key);
 alert("API Key tersimpan!");
 }
+function getApiKey(){return localStorage.getItem("apiKey");}
 
-function getApiKey(){
-return localStorage.getItem("apiKey");
+// ===== CHAT MEMORY =====
+function getChatKey(){return "chat_"+localStorage.getItem("activeToken");}
+function saveChat(data){localStorage.setItem(getChatKey(),JSON.stringify(data));}
+function loadChat(){return JSON.parse(localStorage.getItem(getChatKey())||"[]");}
+
+function renderChat(){
+chat.innerHTML="";
+let msgs=loadChat();
+msgs.forEach(m=>add(m.text,m.role,false));
+}
+
+function newChat(){
+saveChat([]);
+chat.innerHTML="";
+}
+
+function downloadChat(){
+let data=JSON.stringify(loadChat(),null,2);
+let blob=new Blob([data],{type:"application/json"});
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="chat.json";
+a.click();
 }
 
 // AUTO LOGIN
 (function(){
 let t=localStorage.getItem("activeToken");
 let tokens=getTokens();
-
 if(t && tokens[t] && tokens[t].expire>Date.now()){
 loginPage.style.display="none";
 app.style.display="flex";
 startExpire(tokens[t].expire);
+renderChat();
 }
 })();
 
 // CLOCK
-setInterval(()=>{
-clock.innerText=new Date().toLocaleTimeString();
-},1000);
+setInterval(()=>{clock.innerText=new Date().toLocaleTimeString()},1000);
 
 function startExpire(exp){
 setInterval(()=>{
@@ -134,13 +150,20 @@ expire.innerText=`${d}d ${h}h ${m}m`;
 },1000);
 }
 
-// CHAT
-function add(text,type){
+// CHAT UI
+function add(text,type,save=true){
 let div=document.createElement("div");
 div.className="msg "+type;
 div.innerText=text;
 chat.appendChild(div);
 chat.scrollTop=999999;
+
+if(save){
+let msgs=loadChat();
+msgs.push({role:type,text});
+saveChat(msgs);
+}
+
 return div;
 }
 
@@ -149,10 +172,10 @@ let i=0;
 let int=setInterval(()=>{
 if(i<text.length){el.innerText+=text[i];i++;}
 else clearInterval(int);
-},10);
+},8);
 }
 
-// AI MULTI USER + API KEY
+// ===== AI =====
 async function send(){
 let apiKey=getApiKey();
 if(!apiKey){alert("Masukkan API Key dulu!");return;}
@@ -166,6 +189,9 @@ input.value="";
 
 let bubble=add("","ai");
 
+let msgs=loadChat().map(m=>({role:m.role==="user"?"user":"assistant",content:m.text}));
+msgs.unshift({role:"system",content:"AI chat untuk coding, cerita, RP, dll."});
+
 try{
 let res=await fetch("https://openrouter.ai/api/v1/chat/completions",{
 method:"POST",
@@ -175,10 +201,7 @@ headers:{
 },
 body:JSON.stringify({
 model:"openai/gpt-3.5-turbo",
-messages:[
-{role:"system",content:"AI chat untuk coding, cerita, RP, dll."},
-{role:"user",content:text}
-]
+messages:msgs
 })
 });
 
@@ -186,6 +209,11 @@ let data=await res.json();
 let reply=data?.choices?.[0]?.message?.content || "Tidak ada respon";
 
 streamText(bubble,reply);
+
+// simpan AI reply
+let msgsSave=loadChat();
+msgsSave.push({role:"ai",text:reply});
+saveChat(msgsSave);
 
 }catch{
 bubble.innerText="Error koneksi";
