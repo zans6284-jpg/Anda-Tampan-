@@ -1,208 +1,65 @@
-<!DOCTYPE html>
-<html lang="id">
+<!DOCTYPE html><html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepSeeker AI Online</title>
+<title>DeepSeeker AI Multi User</title><style>
+:root{--bg:#000;--green:#00ff88;--cyan:#00eaff;--red:#ff3b3b}
+body{margin:0;font-family:sans-serif;background:var(--bg);color:#fff}
 
-<style>
-:root{
---bg:#000;
---green:#00ff88;
---cyan:#00eaff;
---red:#ff3b3b;
-}
+#loginPage{display:flex;justify-content:center;align-items:center;height:100vh}
+.login-box{background:#111;padding:20px;border-radius:15px;box-shadow:0 0 20px var(--green)}
 
-body{
-margin:0;
-font-family:sans-serif;
-background:var(--bg);
-color:#fff;
-}
+input,button,select{padding:10px;border:none;border-radius:10px;margin-top:10px;width:100%}
+button{background:var(--green);cursor:pointer}
 
-/* LOGIN */
-#loginPage{
-display:flex;
-justify-content:center;
-align-items:center;
-height:100vh;
-}
+#app{display:none;height:100vh;flex-direction:column}
+header{display:flex;align-items:center;padding:10px;background:#111}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--green)}
+.clock{color:var(--green);margin-left:10px}
+.expire{color:var(--cyan);margin-left:10px}
+.logout{margin-left:auto;background:var(--red);padding:8px;border-radius:10px;box-shadow:0 0 10px var(--red)}
 
-.login-box{
-background:#111;
-padding:20px;
-border-radius:15px;
-box-shadow:0 0 20px var(--green);
-}
+.chat-box{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column}
+.msg{padding:10px;margin:5px;border-radius:10px;max-width:75%}
+.user{align-self:flex-end;background:#222}
+.ai{align-self:flex-start;background:#0f172a;color:#00ff88;text-shadow:0 0 8px #00ff88}
 
-/* APP */
-#app{
-display:none;
-height:100vh;
-flex-direction:column;
-}
-
-header{
-display:flex;
-align-items:center;
-gap:10px;
-padding:10px;
-background:#111;
-}
-
-.avatar{
-width:40px;
-height:40px;
-border-radius:50%;
-background:var(--green);
-}
-
-.clock{
-color:var(--green);
-text-shadow:0 0 10px var(--green);
-}
-
-.expire{
-color:var(--cyan);
-}
-
-.logout{
-margin-left:auto;
-background:var(--red);
-border-radius:12px;
-padding:8px;
-box-shadow:0 0 10px var(--red);
-}
-
-/* CHAT */
-.chat-box{
-flex:1;
-overflow:auto;
-padding:10px;
-display:flex;
-flex-direction:column;
-}
-
-.msg{
-padding:10px;
-margin:5px;
-border-radius:10px;
-max-width:75%;
-}
-
-.user{
-align-self:flex-end;
-background:#222;
-}
-
-.ai{
-align-self:flex-start;
-background:#0f172a;
-color:#00ff88;
-text-shadow:0 0 8px #00ff88;
-}
-
-/* INPUT */
-.input-area{
-display:flex;
-padding:10px;
-background:#111;
-}
-
-textarea{
-flex:1;
-border-radius:20px;
-padding:10px;
-background:#222;
-color:#fff;
-border:none;
-}
-
-/* EDITOR */
-.editor{
-background:#111;
-padding:10px;
-}
-
-.editor textarea{
-width:100%;
-height:100px;
-background:#000;
-color:#0f0;
-}
-
-.editor pre{
-background:#000;
-color:#0f0;
-padding:10px;
-}
-</style>
-</head>
-
-<body>
-
-<!-- LOGIN -->
-<div id="loginPage">
+.input-area{display:flex;padding:10px;background:#111}
+textarea{flex:1;border-radius:20px;padding:10px;background:#222;color:#fff;border:none}
+</style></head>
+<body><!-- LOGIN --><div id="loginPage">
 <div class="login-box">
-<h2>Login Token</h2>
-
-<select id="expiry">
+<h3>DeepSeeker Login</h3><select id="expiry">
 <option value="1">1 Hari</option>
 <option value="5">5 Hari</option>
 <option value="7">7 Hari</option>
-</select>
-
-<input id="tokenInput" placeholder="Masukkan token">
-
-<button onclick="generateToken()">Generate</button>
-<button onclick="login()">Masuk</button>
-
-<p id="generated"></p>
+</select><input id="tokenInput" placeholder="Token user">
+<button onclick="generateToken()">Generate Token</button>
+<button onclick="login()">Masuk</button><hr>
+<h4>API Key</h4>
+<input id="apiKeyInput" placeholder="Masukkan API Key OpenRouter">
+<button onclick="saveApiKey()">Simpan API Key</button><p id="generated"></p>
 <p id="status"></p>
 </div>
-</div>
-
-<!-- APP -->
-<div id="app">
-
+</div><!-- APP --><div id="app">
 <header>
 <div class="avatar"></div>
-<b>DeepSeeker AI</b>
+<b style="margin-left:10px">DeepSeeker Multi</b>
 <div class="clock" id="clock"></div>
 <div class="expire" id="expire"></div>
 <button class="logout" onclick="logout()">Logout</button>
-</header>
-
-<div class="chat-box" id="chat"></div>
-
-<div class="input-area">
+</header><div class="chat-box" id="chat"></div><div class="input-area">
 <textarea id="input" placeholder="Ketik pesan..."></textarea>
 <button onclick="send()">➤</button>
 </div>
-
-<div class="editor">
-<h3>Mini VS Code</h3>
-<textarea id="code"></textarea>
-<button onclick="runCode()">Run</button>
-<pre id="output"></pre>
-</div>
-
-</div>
-
-<script>
-// ===== TOKEN SYSTEM =====
-function getTokens(){
-return JSON.parse(localStorage.getItem("tokens")||"{}");
-}
-
-function saveTokens(t){
-localStorage.setItem("tokens",JSON.stringify(t));
-}
+</div><script>
+// ===== TOKEN MULTI USER =====
+function getTokens(){return JSON.parse(localStorage.getItem("tokens")||"{}");}
+function saveTokens(t){localStorage.setItem("tokens",JSON.stringify(t));}
 
 function generateToken(){
 let tokens=getTokens();
-let t="TK"+Math.random().toString(36).substring(2,10);
-
+let t="USR"+Math.random().toString(36).substring(2,8);
 let days=parseInt(document.getElementById("expiry").value);
 let expire=Date.now()+days*86400000;
 
@@ -211,21 +68,15 @@ saveTokens(tokens);
 
 document.getElementById("generated").innerText="Token: "+t;
 document.getElementById("tokenInput").value=t;
-
-navigator.clipboard.writeText(t);
 }
 
 function login(){
 let t=document.getElementById("tokenInput").value.trim();
 let tokens=getTokens();
 
-if(Object.keys(tokens).length===0){
-generateToken();
-tokens=getTokens();
-}
-
 if(!t){
-t=Object.keys(tokens)[0];
+document.getElementById("status").innerText="Isi token dulu";
+return;
 }
 
 let data=tokens[t];
@@ -234,7 +85,7 @@ if(data && data.expire>Date.now()){
 localStorage.setItem("activeToken",t);
 location.reload();
 }else{
-document.getElementById("status").innerText="Token salah / expired";
+document.getElementById("status").innerText="Token invalid / expired";
 }
 }
 
@@ -243,41 +94,47 @@ localStorage.removeItem("activeToken");
 location.reload();
 }
 
+// ===== API KEY SAVE =====
+function saveApiKey(){
+let key=document.getElementById("apiKeyInput").value.trim();
+if(!key) return alert("Isi API Key!");
+localStorage.setItem("apiKey",key);
+alert("API Key tersimpan!");
+}
+
+function getApiKey(){
+return localStorage.getItem("apiKey");
+}
+
 // AUTO LOGIN
 (function(){
 let t=localStorage.getItem("activeToken");
 let tokens=getTokens();
 
 if(t && tokens[t] && tokens[t].expire>Date.now()){
-document.getElementById("loginPage").style.display="none";
-document.getElementById("app").style.display="flex";
+loginPage.style.display="none";
+app.style.display="flex";
 startExpire(tokens[t].expire);
 }
 })();
 
 // CLOCK
 setInterval(()=>{
-document.getElementById("clock").innerText=new Date().toLocaleTimeString();
+clock.innerText=new Date().toLocaleTimeString();
 },1000);
 
 function startExpire(exp){
 setInterval(()=>{
 let s=Math.floor((exp-Date.now())/1000);
-
-if(s<=0){
-localStorage.removeItem("activeToken");
-location.reload();
-}
-
+if(s<=0){localStorage.removeItem("activeToken");location.reload();}
 let d=Math.floor(s/86400);
 let h=Math.floor((s%86400)/3600);
 let m=Math.floor((s%3600)/60);
-
-document.getElementById("expire").innerText=`${d}d ${h}h ${m}m`;
+expire.innerText=`${d}d ${h}h ${m}m`;
 },1000);
 }
 
-// CHAT UI
+// CHAT
 function add(text,type){
 let div=document.createElement("div");
 div.className="msg "+type;
@@ -287,8 +144,19 @@ chat.scrollTop=999999;
 return div;
 }
 
-// ===== AI ONLINE =====
+function streamText(el,text){
+let i=0;
+let int=setInterval(()=>{
+if(i<text.length){el.innerText+=text[i];i++;}
+else clearInterval(int);
+},10);
+}
+
+// AI MULTI USER + API KEY
 async function send(){
+let apiKey=getApiKey();
+if(!apiKey){alert("Masukkan API Key dulu!");return;}
+
 let input=document.getElementById("input");
 let text=input.value.trim();
 if(!text)return;
@@ -296,44 +164,32 @@ if(!text)return;
 add(text,"user");
 input.value="";
 
-let bubble=add("Loading...","ai");
+let bubble=add("","ai");
 
 try{
-let res = await fetch("https://openrouter.ai/api/v1/chat/completions",{
+let res=await fetch("https://openrouter.ai/api/v1/chat/completions",{
 method:"POST",
 headers:{
 "Content-Type":"application/json",
-"Authorization":"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"
+"Authorization":"Bearer "+apiKey
 },
-body: JSON.stringify({
+body:JSON.stringify({
 model:"openai/gpt-3.5-turbo",
 messages:[
-{role:"system",content:"Kamu adalah AI untuk ngobrol, coding, cerita, RP, dan dewasa ringan tanpa melanggar aturan,dll."},
+{role:"system",content:"AI chat untuk coding, cerita, RP, dll."},
 {role:"user",content:text}
 ]
 })
 });
 
-let data = await res.json();
-let reply = data?.choices?.[0]?.message?.content;
+let data=await res.json();
+let reply=data?.choices?.[0]?.message?.content || "Tidak ada respon";
 
-bubble.innerText = reply || "Tidak ada respon";
+streamText(bubble,reply);
 
 }catch{
 bubble.innerText="Error koneksi";
 }
 }
-
-// EDITOR
-function runCode(){
-try{
-let r=eval(document.getElementById("code").value);
-document.getElementById("output").innerText=r;
-}catch(e){
-document.getElementById("output").innerText=e;
-}
-}
-</script>
-
-</body>
+</script></body>
 </html>
