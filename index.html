@@ -1,79 +1,222 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeepSeeker AI FINAL FIX</title><style>
-:root{--bg:#000;--green:#00ff88;--glass:#111;--cyan:#00eaff;--red:#ff3b3b}
-body{margin:0;font-family:sans-serif;background:var(--bg);color:#fff}
+<title>DeepSeeker AI FINAL</title>
 
-#loginPage{display:flex;justify-content:center;align-items:center;height:100vh}
-.login-box{background:#111;padding:20px;border-radius:15px;box-shadow:0 0 20px var(--green)}
-input,button,select{padding:10px;border:none;border-radius:10px;margin-top:10px}
-button{background:var(--green);cursor:pointer}
+<style>
+:root{
+--bg:#000;
+--green:#00ff88;
+--cyan:#00eaff;
+--red:#ff3b3b;
+}
 
-#app{display:none;height:100vh;flex-direction:column}
-header{display:flex;align-items:center;gap:10px;padding:10px;background:#111}
-.avatar{width:40px;height:40px;border-radius:50%;background:var(--green)}
-.clock{color:var(--green);text-shadow:0 0 10px var(--green)}
-.expire{color:var(--cyan)}
-.logout{margin-left:auto;background:var(--red);border-radius:12px;color:#fff;box-shadow:0 0 10px var(--red);padding:8px 12px}
+body{
+margin:0;
+font-family:sans-serif;
+background:var(--bg);
+color:#fff;
+}
 
-.chat-box{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column}
-.msg{padding:10px;margin:5px;border-radius:10px;max-width:75%;word-break:break-word}
-.user{align-self:flex-end;background:#222}
-.ai{align-self:flex-start;background:#0f172a;color:#00ff88;text-shadow:0 0 8px #00ff88}
+/* LOGIN */
+#loginPage{
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
 
-.input-area{display:flex;gap:5px;padding:10px;background:#111}
-textarea{flex:1;border-radius:20px;padding:10px;background:#222;color:#fff}
+.login-box{
+background:#111;
+padding:20px;
+border-radius:15px;
+box-shadow:0 0 20px var(--green);
+}
 
-.editor{background:#111;padding:10px}
-.editor textarea{width:100%;height:120px;background:#000;color:#0f0;font-family:monospace}
-.editor pre{background:#000;color:#0f0;padding:10px}
-</style></head>
-<body><div id="loginPage">
+/* APP */
+#app{
+display:none;
+height:100vh;
+flex-direction:column;
+}
+
+header{
+display:flex;
+align-items:center;
+gap:10px;
+padding:10px;
+background:#111;
+}
+
+.avatar{
+width:40px;
+height:40px;
+border-radius:50%;
+background:var(--green);
+}
+
+.clock{
+color:var(--green);
+text-shadow:0 0 10px var(--green);
+}
+
+.expire{
+color:var(--cyan);
+}
+
+.logout{
+margin-left:auto;
+background:var(--red);
+border-radius:12px;
+color:#fff;
+padding:8px;
+box-shadow:0 0 10px var(--red);
+}
+
+/* CHAT */
+.chat-box{
+flex:1;
+overflow:auto;
+padding:10px;
+display:flex;
+flex-direction:column;
+}
+
+.msg{
+padding:10px;
+margin:5px;
+border-radius:10px;
+max-width:75%;
+}
+
+.user{
+align-self:flex-end;
+background:#222;
+}
+
+.ai{
+align-self:flex-start;
+background:#0f172a;
+color:#00ff88;
+text-shadow:0 0 8px #00ff88;
+}
+
+/* INPUT */
+.input-area{
+display:flex;
+padding:10px;
+background:#111;
+}
+
+textarea{
+flex:1;
+border-radius:20px;
+padding:10px;
+background:#222;
+color:#fff;
+border:none;
+}
+
+/* EDITOR */
+.editor{
+background:#111;
+padding:10px;
+}
+
+.editor textarea{
+width:100%;
+height:100px;
+background:#000;
+color:#0f0;
+}
+
+.editor pre{
+background:#000;
+color:#0f0;
+padding:10px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginPage">
 <div class="login-box">
 <h2>Login Token</h2>
+
 <select id="expiry">
 <option value="1">1 Hari</option>
 <option value="5">5 Hari</option>
 <option value="7">7 Hari</option>
 </select>
+
 <input id="tokenInput" placeholder="Masukkan token">
-<button onclick="login()">Masuk</button>
+
 <button onclick="generateToken()">Generate</button>
-<div id="generated"></div>
+<button onclick="login()">Masuk</button>
+
+<p id="generated"></p>
 <p id="status"></p>
 </div>
-</div><div id="app">
+</div>
+
+<!-- APP -->
+<div id="app">
+
 <header>
 <div class="avatar"></div>
 <b>DeepSeeker Gemini</b>
 <div class="clock" id="clock"></div>
-<div class="expire" id="expireInfo"></div>
+<div class="expire" id="expire"></div>
 <button class="logout" onclick="logout()">Logout</button>
-</header><div class="chat-box" id="chat"></div><div class="input-area">
-<textarea id="input" placeholder="Ketik pesan..."></textarea>
+</header>
+
+<div class="chat-box" id="chat"></div>
+
+<div class="input-area">
+<textarea id="input"></textarea>
 <button onclick="send()">➤</button>
-</div><div class="editor">
+</div>
+
+<div class="editor">
 <h3>Mini VS Code</h3>
 <textarea id="code"></textarea>
 <button onclick="runCode()">Run</button>
 <pre id="output"></pre>
-</div></div><script>
-// TOKEN SYSTEM (FIX LOOP LOGIN)
-function getTokens(){return JSON.parse(localStorage.getItem("tokens")||"{}");}
-function saveTokens(t){localStorage.setItem("tokens",JSON.stringify(t));}
+</div>
+
+</div>
+
+<script>
+// ===== TOKEN SYSTEM =====
+function getTokens(){
+return JSON.parse(localStorage.getItem("tokens")||"{}");
+}
+
+function saveTokens(t){
+localStorage.setItem("tokens",JSON.stringify(t));
+}
 
 function generateToken(){
 let tokens=getTokens();
 let t="TK"+Math.random().toString(36).substring(2,10);
+
 let days=parseInt(document.getElementById("expiry").value);
 let expire=Date.now()+days*86400000;
 
 tokens[t]={expire};
 saveTokens(tokens);
 
+// tampilkan
 document.getElementById("generated").innerText="Token: "+t;
+
+// auto isi input
+document.getElementById("tokenInput").value=t;
+
+// copy
 navigator.clipboard.writeText(t);
 }
 
@@ -81,10 +224,15 @@ function login(){
 let t=document.getElementById("tokenInput").value.trim();
 let tokens=getTokens();
 
-// AUTO CREATE TOKEN JIKA KOSONG
+// auto buat token kalau kosong
 if(Object.keys(tokens).length===0){
 generateToken();
 tokens=getTokens();
+}
+
+// auto ambil token pertama
+if(!t){
+t=Object.keys(tokens)[0];
 }
 
 let data=tokens[t];
@@ -93,29 +241,28 @@ if(data && data.expire>Date.now()){
 localStorage.setItem("activeToken",t);
 location.reload();
 }else{
-document.getElementById("status").innerText="Token invalid / expired";
+document.getElementById("status").innerText="Token salah / expired";
 }
 }
 
 function logout(){
-// FIX: jangan hapus token database
 localStorage.removeItem("activeToken");
 location.reload();
 }
 
-// AUTO LOGIN (FIX LOOP)
+// ===== AUTO LOGIN =====
 (function(){
-let active=localStorage.getItem("activeToken");
+let t=localStorage.getItem("activeToken");
 let tokens=getTokens();
 
-if(active && tokens[active] && tokens[active].expire>Date.now()){
+if(t && tokens[t] && tokens[t].expire>Date.now()){
 document.getElementById("loginPage").style.display="none";
 document.getElementById("app").style.display="flex";
-startExpire(tokens[active].expire);
+startExpire(tokens[t].expire);
 }
 })();
 
-// CLOCK
+// ===== CLOCK =====
 setInterval(()=>{
 document.getElementById("clock").innerText=new Date().toLocaleTimeString();
 },1000);
@@ -123,28 +270,30 @@ document.getElementById("clock").innerText=new Date().toLocaleTimeString();
 function startExpire(exp){
 setInterval(()=>{
 let s=Math.floor((exp-Date.now())/1000);
+
 if(s<=0){
 localStorage.removeItem("activeToken");
 location.reload();
 }
+
 let d=Math.floor(s/86400);
 let h=Math.floor((s%86400)/3600);
 let m=Math.floor((s%3600)/60);
-document.getElementById("expireInfo").innerText=`${d}d ${h}h ${m}m`;
+
+document.getElementById("expire").innerText=`${d}d ${h}h ${m}m`;
 },1000);
 }
 
-// CHAT UI
+// ===== CHAT =====
 function add(text,type){
 let div=document.createElement("div");
 div.className="msg "+type;
 div.innerText=text;
-document.getElementById("chat").appendChild(div);
-document.getElementById("chat").scrollTop=999999;
+chat.appendChild(div);
+chat.scrollTop=999999;
 return div;
 }
 
-// AI CALL VIA BACKEND
 async function send(){
 let input=document.getElementById("input");
 let text=input.value.trim();
@@ -156,35 +305,30 @@ input.value="";
 let bubble=add("Loading...","ai");
 
 try{
-  let res = await fetch("https://zans6284-jpg-deepseeker-backend.vercel.app/api/ai", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    message: text
-  })
+let res=await fetch("https://zans6284-jpg-deepseeker-backend.vercel.app/api/ai",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({message:text})
 });
 
-let data = await res.json();
-bubble.innerText = data.reply;
-}
-
 let data=await res.json();
+bubble.innerText=data.reply || "Tidak ada respon";
 
-bubble.innerText=data.reply || "AI tidak merespon";
-
-}catch(e){
-bubble.innerText="Error koneksi"}
+}catch{
+bubble.innerText="Error koneksi";
+}
 }
 
-// EDITOR
+// ===== EDITOR =====
 function runCode(){
 try{
-let result=eval(document.getElementById("code").value);
-document.getElementById("output").innerText=result;
-}catch(e){document.getElementById("output").innerText=e}
+let r=eval(document.getElementById("code").value);
+document.getElementById("output").innerText=r;
+}catch(e){
+document.getElementById("output").innerText=e;
 }
+}
+</script>
 
-</script></body>
+</body>
 </html>
